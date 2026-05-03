@@ -60,18 +60,22 @@ da qualidade (testes, lint, accessibility).
 
 ---
 
-## Release 3 — Final (v1.0.0)
+## Release 3 — Final (v1.0.0) ✅
 
 Objetivo: sugestão de prioridade por IA, deploy real e documentação final.
 
-- [ ] **RF-007** — Sugestão de prioridade via IA
-  - Critério: Cloud Function `suggestPriority` retorna `low|medium|high|urgent` para um par `(title, description)`.
-  - Critério: quando `OPENAI_API_KEY` está presente, chama OpenAI; senão usa fallback heurístico determinístico.
-  - Critério: a heurística e a chamada externa convivem sem código duplicado (lição da Unidade 3.2).
+- [x] **RF-007** — Sugestão de prioridade via IA (Claude Haiku 4.5)
+  - Critério: Cloud Function callable `suggestpriority` retorna `low|medium|high|urgent` para um par `(title, description)`.
+  - Critério: quando `ANTHROPIC_API_KEY` está presente, chama Claude via `tool_use`; senão usa fallback heurístico determinístico.
+  - Critério: a heurística e a chamada externa convivem sem código duplicado (lição da Unidade 3.2) — interface única `suggestPriority(input, options)`, decisão num único `if`.
+  - Critério: cliente exibe `source: 'claude' | 'heuristic'` honestamente para o usuário.
 
 - [ ] **RNF-004** — Performance
-  - Critério: TTI < 3 s em throttling 3G no Lighthouse.
+  - Critério: TTI < 3 s em throttling 3G no Lighthouse. *(Verificação manual após deploy — registrar números no README.)*
 
 - [ ] **Deploy** — Hosting + Functions em projeto Firebase real.
-- [ ] **Documentação final** — README expandido com seção "Como a IA foi usada neste projeto" e prints.
-- [ ] **Firebase App Check** — proteção adicional contra uso fora do app.
+  *(Comandos prontos no README; usuário roda manualmente após `firebase functions:secrets:set ANTHROPIC_API_KEY`.)*
+
+- [x] **Documentação final** — README expandido com seção "Como a IA foi usada neste projeto", métricas e placeholders para prints.
+
+- [x] **Firebase App Check** com reCAPTCHA v3 — estrutura pronta no Angular (opt-in via `recaptchaSiteKey` em `firebase-config.ts`); enforcement faseado conforme DEC-006.
