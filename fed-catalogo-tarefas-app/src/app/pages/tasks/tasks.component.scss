@@ -7,14 +7,30 @@
     color: #0f172a;
   }
 
-  &__form {
+  &__form,
+  &__edit {
     display: grid;
     gap: 0.75rem;
     padding: 1rem;
     background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
+  }
+
+  &__form {
     margin-bottom: 1.5rem;
+  }
+
+  &__edit-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  &__edit-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
   }
 
   &__field {
@@ -64,6 +80,11 @@
     background: #ffffff;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
+
+    &:has(.tasks__edit) {
+      flex-direction: column;
+      align-items: stretch;
+    }
   }
 
   &__item-main {
@@ -79,6 +100,26 @@
     }
   }
 
+  &__item-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+
+  &__edit-btn {
+    background: #e0e7ff;
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+    border-radius: 8px;
+    padding: 0.4rem 0.7rem;
+    cursor: pointer;
+    font: inherit;
+
+    &:hover {
+      background: #c7d2fe;
+    }
+  }
+
   &__delete {
     background: #fee2e2;
     color: #991b1b;
@@ -90,6 +131,39 @@
 
     &:hover {
       background: #fecaca;
+    }
+  }
+
+  &__save,
+  &__cancel {
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font: inherit;
+  }
+
+  &__save {
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+
+    &[disabled] {
+      opacity: 0.6;
+      cursor: progress;
+    }
+
+    &:hover:not([disabled]) {
+      background: #1d4ed8;
+    }
+  }
+
+  &__cancel {
+    background: #ffffff;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+
+    &:hover {
+      background: #f1f5f9;
     }
   }
 

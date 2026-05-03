@@ -1,28 +1,31 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
+import { NotAuthenticatedError } from '../../errors/not-authenticated.error';
 import { TaskNotFoundError } from '../../errors/task-not-found.error';
-import { TaskCreate, TaskPriority } from '../../models/task';
+import { UnauthorizedTaskAccessError } from '../../errors/unauthorized-task-access.error';
+import { Task, TaskCreate, TaskPriority, TaskStatus } from '../../models/task';
 import { TaskService } from '../../services/task.service';
 
-interface FormState {
+interface CreateFormState {
   title: string;
   description: string;
   priority: TaskPriority;
 }
 
-const EMPTY_FORM: FormState = {
+interface EditFormState {
+  title: string;
+  description: string;
+  priority: TaskPriority;
+  status: TaskStatus;
+}
+
+const EMPTY_CREATE_FORM: CreateFormState = {
   title: '',
   description: '',
   priority: TaskPriority.MEDIUM,
 };
 
-/**
- * Página principal da Release 1: lista as tarefas do usuário e oferece um
- * formulário simples para criar novas. Persistência delegada ao
- * `TaskService`. Estado reativo da lista vem direto do Firestore (Signal),
- * estado do formulário é local (Signal).
- */
 @Component({
   selector: 'app-tasks',
   standalone: true,
@@ -35,7 +38,9 @@ export class TasksComponent {
   private readonly tasksService = inject(TaskService);
 
   protected readonly tasks = this.tasksService.list();
-  protected readonly form = signal<FormState>({ ...EMPTY_FORM });
+  protected readonly createForm = signal<CreateFormState>({ ...EMPTY_CREATE_FORM });
+  protected readonly editingId = signal<string | null>(null);
+  protected readonly editForm = signal<EditFormState | null>(null);
   protected readonly busy = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
 
@@ -46,13 +51,30 @@ export class TasksComponent {
     { value: TaskPriority.URGENT, label: 'Urgente' },
   ];
 
-  protected updateField<K extends keyof FormState>(field: K, value: FormState[K]): void {
-    this.form.update((current) => ({ ...current, [field]: value }));
+  protected readonly statusOptions: ReadonlyArray<{ value: TaskStatus; label: string }> = [
+    { value: TaskStatus.OPEN, label: 'Aberta' },
+    { value: TaskStatus.IN_PROGRESS, label: 'Em andamento' },
+    { value: TaskStatus.DONE, label: 'Concluída' },
+    { value: TaskStatus.CANCELLED, label: 'Cancelada' },
+  ];
+
+  protected updateCreateField<K extends keyof CreateFormState>(
+    field: K,
+    value: CreateFormState[K],
+  ): void {
+    this.createForm.update((current) => ({ ...current, [field]: value }));
   }
 
-  protected async submit(): Promise<void> {
+  protected updateEditField<K extends keyof EditFormState>(
+    field: K,
+    value: EditFormState[K],
+  ): void {
+    this.editForm.update((current) => (current ? { ...current, [field]: value } : current));
+  }
+
+  protected async submitCreate(): Promise<void> {
     if (this.busy()) return;
-    const current = this.form();
+    const current = this.createForm();
     if (!current.title.trim()) {
       this.errorMessage.set('Título é obrigatório.');
       return;
@@ -65,14 +87,55 @@ export class TasksComponent {
         title: current.title,
         description: current.description,
         priority: current.priority,
-        status: 'open',
+        status: TaskStatus.OPEN,
       };
       await this.tasksService.create(payload);
-      this.form.set({ ...EMPTY_FORM });
+      this.createForm.set({ ...EMPTY_CREATE_FORM });
     } catch (error: unknown) {
-      this.errorMessage.set(
-        error instanceof Error ? error.message : 'Falha ao criar tarefa.',
-      );
+      this.errorMessage.set(this.translateError(error, 'criar tarefa'));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  protected startEdit(task: Task): void {
+    this.errorMessage.set(null);
+    this.editingId.set(task.id);
+    this.editForm.set({
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      status: task.status,
+    });
+  }
+
+  protected cancelEdit(): void {
+    this.editingId.set(null);
+    this.editForm.set(null);
+  }
+
+  protected async saveEdit(): Promise<void> {
+    if (this.busy()) return;
+    const id = this.editingId();
+    const current = this.editForm();
+    if (!id || !current) return;
+    if (!current.title.trim()) {
+      this.errorMessage.set('Título é obrigatório.');
+      return;
+    }
+
+    this.busy.set(true);
+    this.errorMessage.set(null);
+    try {
+      await this.tasksService.update(id, {
+        title: current.title,
+        description: current.description,
+        priority: current.priority,
+        status: current.status,
+      });
+      this.cancelEdit();
+    } catch (error: unknown) {
+      this.errorMessage.set(this.translateError(error, 'atualizar tarefa'));
     } finally {
       this.busy.set(false);
     }
@@ -87,9 +150,23 @@ export class TasksComponent {
         this.errorMessage.set('Esta tarefa já havia sido removida.');
         return;
       }
-      this.errorMessage.set(
-        error instanceof Error ? error.message : 'Falha ao excluir tarefa.',
-      );
+      this.errorMessage.set(this.translateError(error, 'excluir tarefa'));
     }
+  }
+
+  private translateError(error: unknown, action: string): string {
+    if (error instanceof NotAuthenticatedError) {
+      return 'Você precisa estar logado para realizar esta ação.';
+    }
+    if (error instanceof UnauthorizedTaskAccessError) {
+      return 'Esta tarefa pertence a outro usuário.';
+    }
+    if (error instanceof TaskNotFoundError) {
+      return 'Tarefa não encontrada.';
+    }
+    if (error instanceof Error) {
+      return error.message;
+    }
+    return `Falha ao ${action}.`;
   }
 }
