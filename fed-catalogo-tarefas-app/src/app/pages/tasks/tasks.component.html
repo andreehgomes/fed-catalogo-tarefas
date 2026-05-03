@@ -32,15 +32,32 @@
 
     <label class="tasks__field">
       <span>Prioridade</span>
-      <select
-        [ngModel]="createForm().priority"
-        (ngModelChange)="updateCreateField('priority', $event)"
-        name="priority"
-      >
-        @for (option of priorityOptions; track option.value) {
-          <option [value]="option.value">{{ option.label }}</option>
-        }
-      </select>
+      <div class="tasks__priority-row">
+        <select
+          [ngModel]="createForm().priority"
+          (ngModelChange)="updateCreateField('priority', $event)"
+          name="priority"
+        >
+          @for (option of priorityOptions; track option.value) {
+            <option [value]="option.value">{{ option.label }}</option>
+          }
+        </select>
+        <button
+          type="button"
+          class="tasks__suggest"
+          (click)="suggestForCreate()"
+          [disabled]="suggestingFor() !== null"
+          aria-label="Sugerir prioridade com IA"
+        >
+          {{ suggestingFor() === 'create' ? 'Sugerindo…' : 'Sugerir com IA' }}
+        </button>
+      </div>
+      @if (lastSuggestionSource(); as src) {
+        <small class="tasks__suggest-tag">
+          Sugestão aplicada via
+          {{ src === 'claude' ? 'Claude (Anthropic)' : 'fallback heurístico' }}
+        </small>
+      }
     </label>
 
     <button type="submit" [disabled]="busy()">
@@ -87,15 +104,26 @@
             <div class="tasks__edit-row">
               <label class="tasks__field">
                 <span>Prioridade</span>
-                <select
-                  [ngModel]="edit.priority"
-                  (ngModelChange)="updateEditField('priority', $event)"
-                  name="edit-priority"
-                >
-                  @for (option of priorityOptions; track option.value) {
-                    <option [value]="option.value">{{ option.label }}</option>
-                  }
-                </select>
+                <div class="tasks__priority-row">
+                  <select
+                    [ngModel]="edit.priority"
+                    (ngModelChange)="updateEditField('priority', $event)"
+                    name="edit-priority"
+                  >
+                    @for (option of priorityOptions; track option.value) {
+                      <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                  <button
+                    type="button"
+                    class="tasks__suggest"
+                    (click)="suggestForEdit()"
+                    [disabled]="suggestingFor() !== null"
+                    aria-label="Sugerir prioridade com IA"
+                  >
+                    {{ suggestingFor() === 'edit' ? 'Sugerindo…' : 'Sugerir com IA' }}
+                  </button>
+                </div>
               </label>
 
               <label class="tasks__field">
@@ -111,6 +139,13 @@
                 </select>
               </label>
             </div>
+
+            @if (lastSuggestionSource(); as src) {
+              <small class="tasks__suggest-tag">
+                Sugestão aplicada via
+                {{ src === 'claude' ? 'Claude (Anthropic)' : 'fallback heurístico' }}
+              </small>
+            }
 
             <div class="tasks__edit-actions">
               <button type="submit" class="tasks__save" [disabled]="busy()">

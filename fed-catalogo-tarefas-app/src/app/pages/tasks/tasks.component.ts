@@ -5,6 +5,7 @@ import { NotAuthenticatedError } from '../../errors/not-authenticated.error';
 import { TaskNotFoundError } from '../../errors/task-not-found.error';
 import { UnauthorizedTaskAccessError } from '../../errors/unauthorized-task-access.error';
 import { Task, TaskCreate, TaskPriority, TaskStatus } from '../../models/task';
+import { PrioritySuggestionService } from '../../services/priority-suggestion.service';
 import { TaskService } from '../../services/task.service';
 
 interface CreateFormState {
@@ -19,6 +20,9 @@ interface EditFormState {
   priority: TaskPriority;
   status: TaskStatus;
 }
+
+type SuggestionContext = 'create' | 'edit';
+type SuggestionSource = 'claude' | 'heuristic';
 
 const EMPTY_CREATE_FORM: CreateFormState = {
   title: '',
@@ -36,6 +40,7 @@ const EMPTY_CREATE_FORM: CreateFormState = {
 })
 export class TasksComponent {
   private readonly tasksService = inject(TaskService);
+  private readonly suggestionService = inject(PrioritySuggestionService);
 
   protected readonly tasks = this.tasksService.list();
   protected readonly createForm = signal<CreateFormState>({ ...EMPTY_CREATE_FORM });
@@ -43,6 +48,9 @@ export class TasksComponent {
   protected readonly editForm = signal<EditFormState | null>(null);
   protected readonly busy = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
+
+  protected readonly suggestingFor = signal<SuggestionContext | null>(null);
+  protected readonly lastSuggestionSource = signal<SuggestionSource | null>(null);
 
   protected readonly priorityOptions: ReadonlyArray<{ value: TaskPriority; label: string }> = [
     { value: TaskPriority.LOW, label: 'Baixa' },
@@ -91,6 +99,7 @@ export class TasksComponent {
       };
       await this.tasksService.create(payload);
       this.createForm.set({ ...EMPTY_CREATE_FORM });
+      this.lastSuggestionSource.set(null);
     } catch (error: unknown) {
       this.errorMessage.set(this.translateError(error, 'criar tarefa'));
     } finally {
@@ -107,11 +116,13 @@ export class TasksComponent {
       priority: task.priority,
       status: task.status,
     });
+    this.lastSuggestionSource.set(null);
   }
 
   protected cancelEdit(): void {
     this.editingId.set(null);
     this.editForm.set(null);
+    this.lastSuggestionSource.set(null);
   }
 
   protected async saveEdit(): Promise<void> {
@@ -151,6 +162,49 @@ export class TasksComponent {
         return;
       }
       this.errorMessage.set(this.translateError(error, 'excluir tarefa'));
+    }
+  }
+
+  protected async suggestForCreate(): Promise<void> {
+    const current = this.createForm();
+    await this.runSuggestion('create', current.title, current.description, (priority) => {
+      this.createForm.update((c) => ({ ...c, priority }));
+    });
+  }
+
+  protected async suggestForEdit(): Promise<void> {
+    const current = this.editForm();
+    if (!current) return;
+    await this.runSuggestion('edit', current.title, current.description, (priority) => {
+      this.editForm.update((c) => (c ? { ...c, priority } : c));
+    });
+  }
+
+  private async runSuggestion(
+    context: SuggestionContext,
+    title: string,
+    description: string,
+    apply: (priority: TaskPriority) => void,
+  ): Promise<void> {
+    if (this.suggestingFor() !== null) return;
+    if (!title.trim()) {
+      this.errorMessage.set('Informe ao menos o título antes de pedir sugestão.');
+      return;
+    }
+
+    this.suggestingFor.set(context);
+    this.errorMessage.set(null);
+    try {
+      const result = await this.suggestionService.suggest({
+        title,
+        description: description ?? '',
+      });
+      apply(result.priority);
+      this.lastSuggestionSource.set(result.source);
+    } catch (error: unknown) {
+      this.errorMessage.set(this.translateError(error, 'obter sugestão de prioridade'));
+    } finally {
+      this.suggestingFor.set(null);
     }
   }
 

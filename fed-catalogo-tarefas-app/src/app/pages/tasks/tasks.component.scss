@@ -63,6 +63,46 @@
     font-size: 0.9rem;
   }
 
+  &__priority-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+
+    select {
+      flex: 1 1 auto;
+    }
+  }
+
+  &__suggest {
+    background: #ede9fe;
+    color: #5b21b6;
+    border: 1px solid #ddd6fe;
+    border-radius: 8px;
+    padding: 0.5rem 0.8rem;
+    cursor: pointer;
+    font: inherit;
+    white-space: nowrap;
+
+    &:hover:not([disabled]) {
+      background: #ddd6fe;
+    }
+
+    &[disabled] {
+      opacity: 0.6;
+      cursor: progress;
+    }
+
+    &:focus-visible {
+      outline: 2px solid #7c3aed;
+      outline-offset: 2px;
+    }
+  }
+
+  &__suggest-tag {
+    color: #5b21b6;
+    font-style: italic;
+  }
+
   &__list {
     list-style: none;
     padding: 0;
