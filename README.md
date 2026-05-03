@@ -62,6 +62,58 @@ Acompanhe o progresso no [backlog](./docs/backlog.md):
 - **Release 2 — Qualidade (v0.2.0)**: Auth, regras de segurança, AuthGuard, testes, acessibilidade.
 - **Release 3 — Final (v1.0.0)**: Cloud Function `suggestPriority` (OpenAI + fallback) e deploy.
 
+## Segurança
+
+A `apiKey` do Firebase Web em [`firebase-config.ts`](./fed-catalogo-tarefas-app/src/environments/firebase-config.ts)
+**é pública por design** — o SDK precisa dela em runtime no navegador, então
+ela aparece no JS de qualquer visitante do app independente de estar no Git
+ou em variáveis de ambiente. A doc oficial confirma:
+[Are Firebase API keys safe to expose?](https://firebase.google.com/docs/projects/api-keys)
+
+A segurança real do app é construída em camadas — veja
+[DEC-004](./docs/decisoes.md) para o raciocínio completo.
+
+### Checklist OBRIGATÓRIO antes do primeiro `firebase deploy`
+
+Sem cumprir este checklist, **não faça deploy** — o app ficaria aberto a
+abuso (escritas anônimas no Firestore, consumo da cota grátis etc.).
+
+- [ ] **1. Restringir a `apiKey` por domínio HTTP referrer** no Google Cloud Console:
+  1. Abra https://console.cloud.google.com/apis/credentials?project=fed-catalogo-tarefas
+  2. Edite a chave `Browser key (auto created by Firebase)`
+  3. Em *Application restrictions* escolha *HTTP referrers (web sites)*
+  4. Em *Website restrictions* adicione:
+     - `http://localhost:*/*`
+     - `http://127.0.0.1:*/*`
+     - `https://fed-catalogo-tarefas.web.app/*`
+     - `https://fed-catalogo-tarefas.firebaseapp.com/*`
+     - (eventual domínio próprio quando configurar)
+  5. Em *API restrictions* deixe restrita aos serviços que o app usa
+     (Cloud Firestore, Identity Toolkit, Cloud Functions).
+  6. Salve.
+
+- [ ] **2. Trocar as `firestore.rules` para regras autenticadas.**
+  As regras atuais (Release 1) liberam tudo — adequadas apenas para o
+  Firestore Emulator local. Antes de deploy, ou:
+  - **(opção segura)** entregar a Release 2 com Auth + rules
+    `request.auth != null && request.auth.uid == resource.data.userId`; ou
+  - **(opção temporária)** trocar manualmente as rules para
+    `allow read, write: if false;` para deploy intermediário.
+
+- [ ] **3. Configurar Firebase App Check** com reCAPTCHA v3 *(Release 2/3)*:
+  https://console.firebase.google.com/project/fed-catalogo-tarefas/appcheck
+
+- [ ] **4. (Opcional) Configurar alertas de orçamento** no Google Cloud
+  para não ser surpreendido caso algum abuso passe pelas camadas anteriores:
+  https://console.cloud.google.com/billing/budgets?project=fed-catalogo-tarefas
+
+### O que NÃO funcionaria como segurança
+
+- ❌ Esconder a `apiKey` em `.env.local` — ela acaba no bundle de qualquer jeito.
+- ❌ Ofuscar/minificar o JavaScript — DevTools mostra tudo.
+- ❌ Rotacionar a chave periodicamente — não há mecanismo automático e
+  cada rotação exige redeploy.
+
 ## Como a IA foi usada neste projeto
 
 > *Esta seção será expandida na Release 3 com prints, métricas e reflexões.*
