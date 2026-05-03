@@ -205,9 +205,14 @@ resistência — foi uma chance de a IA explicar o **propósito** do recurso,
 e em troca o usuário pediu **Claude em vez de OpenAI**. Decisões boas
 saem de pausas curtas, não de execuções rápidas.
 
-> **Espaço para prints da entrega final:** *adicione capturas da página
-> de tarefas, do botão "Sugerir com IA" funcionando, e do log da Cloud
-> Function mostrando `source: claude` e `source: heuristic`.*
+> **Espaço para prints da entrega final:** 
+
+![alt text](./imagens_evidencias/image.png)
+![alt text](./imagens_evidencias/image_2.png)
+![alt text](./imagens_evidencias/image_3.png)
+![alt text](./imagens_evidencias/image_4.png)
+![alt text](./imagens_evidencias/image_5.png)
+
 
 ## Segurança
 
