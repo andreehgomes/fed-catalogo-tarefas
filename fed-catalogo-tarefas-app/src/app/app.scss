@@ -1,0 +1,29 @@
+:host {
+  display: block;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #1f2937;
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+.app-header {
+  padding: 1.5rem 2rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #0f172a;
+  }
+
+  &__subtitle {
+    margin: 0.25rem 0 0;
+    color: #64748b;
+    font-size: 0.95rem;
+  }
+}
+
+.app-main {
+  padding: 2rem;
+}

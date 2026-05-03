@@ -1,0 +1,78 @@
+<section class="tasks">
+  <h2>Minhas tarefas</h2>
+
+  <form
+    class="tasks__form"
+    (submit)="submit(); $event.preventDefault()"
+    aria-label="Formulário de criação de tarefa"
+  >
+    <label class="tasks__field">
+      <span>Título</span>
+      <input
+        type="text"
+        [ngModel]="form().title"
+        (ngModelChange)="updateField('title', $event)"
+        name="title"
+        required
+        maxlength="120"
+        autocomplete="off"
+      />
+    </label>
+
+    <label class="tasks__field">
+      <span>Descrição</span>
+      <textarea
+        rows="3"
+        [ngModel]="form().description"
+        (ngModelChange)="updateField('description', $event)"
+        name="description"
+        maxlength="2000"
+      ></textarea>
+    </label>
+
+    <label class="tasks__field">
+      <span>Prioridade</span>
+      <select
+        [ngModel]="form().priority"
+        (ngModelChange)="updateField('priority', $event)"
+        name="priority"
+      >
+        @for (option of priorityOptions; track option.value) {
+          <option [value]="option.value">{{ option.label }}</option>
+        }
+      </select>
+    </label>
+
+    <button type="submit" [disabled]="busy()">
+      {{ busy() ? 'Salvando…' : 'Criar tarefa' }}
+    </button>
+
+    @if (errorMessage(); as msg) {
+      <p class="tasks__error" role="alert">{{ msg }}</p>
+    }
+  </form>
+
+  <ul class="tasks__list" aria-live="polite">
+    @for (task of tasks(); track task.id) {
+      <li class="tasks__item">
+        <div class="tasks__item-main">
+          <strong>{{ task.title }}</strong>
+          @if (task.description) {
+            <p>{{ task.description }}</p>
+          }
+          <small>Prioridade: {{ task.priority }} · Status: {{ task.status }}</small>
+        </div>
+        <button
+          type="button"
+          class="tasks__delete"
+          (click)="remove(task.id)"
+          [attr.aria-label]="'Excluir tarefa ' + task.title"
+        >
+          Excluir
+        </button>
+      </li>
+    } @empty {
+      <li class="tasks__empty">Nenhuma tarefa cadastrada ainda.</li>
+    }
+  </ul>
+</section>
