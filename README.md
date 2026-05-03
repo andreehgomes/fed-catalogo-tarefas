@@ -145,7 +145,7 @@ O cliente exibe **honestamente** a fonte da sugestão para o usuário
 ("Sugestão aplicada via Claude (Anthropic)" ou "via fallback heurístico").
 Sem fingir que sempre é IA.
 
-### Métricas e reflexões
+### Métricas do projeto
 
 | Métrica                                                  | Valor       |
 |----------------------------------------------------------|-------------|
@@ -156,6 +156,54 @@ Sem fingir que sempre é IA.
 | Modelo de IA de desenvolvimento                          | Claude Opus 4.7 (1M) |
 | Modelo de IA de runtime                                  | Claude Haiku 4.5 |
 | Custo médio por sugestão runtime                         | ~US$ 0,0001 |
+
+### Lighthouse (entrega final)
+
+Auditoria executada em guia anônima do Chrome contra
+`https://fed-catalogo-tarefas.web.app/`, modo Mobile, throttling Slow 4G,
+Simulated throttling. Auditoria única (não múltiplas rodadas).
+
+| Categoria         | Score | Observação |
+|-------------------|-------|------------|
+| **Performance**   | 53    | ⚠️ Lighthouse reportou *"page loaded too slowly to finish within the time limit; results may be incomplete"*. Score parcial — o número real está entre 53 e o que sairia de uma medição completa. |
+| **Accessibility** | 100   | ✅ supera com folga o alvo do RNF-005 (≥ 90). |
+| **Best Practices**| 100   |            |
+| **SEO**           | 82    | Não é critério de aceite. |
+
+> **RNF-004 (TTI < 3s em 3G) — não cumprido nesta entrega.** O bundle
+> inicial de ~638 kb (limite default do Angular CLI: 500 kb, warning
+> emitido no build) domina o tempo até interatividade em conexões
+> móveis. As otimizações naturais ficam como continuidade do projeto:
+> `loadChildren` agressivo nas rotas, lazy-load do AngularFire em vez
+> de import top-level no `app.config.ts`, `defer` blocks no template
+> da página de tarefas, e provavelmente troca da estratégia de
+> Firestore real-time por `getDocs` na primeira carga (com Signal
+> reativo só no `onSnapshot` subsequente).
+>
+> A não-otimização de performance foi uma decisão consciente: o foco
+> da disciplina é **IA aplicada ao desenvolvimento**, não engenharia
+> de performance web. Reconhecer a limitação é mais didático do que
+> mascará-la.
+
+### Reflexões da disciplina
+
+**Lição da Unidade 3.2 (caso PriorityAdvisor) — duplicação de lógica.**
+O perigo é duplicar a *classificação de prioridade* entre IA e fallback;
+não é duplicar o *contrato* zod entre cliente e servidor. A primeira
+duplicação fragmenta a evolução; a segunda é normal em fronteiras de
+processo. Ver DEC-005.
+
+**Lição da Unidade 4.2 — não fazer suposições silenciosas.** Cada arquivo
+sensível (`firebase.json`, `firestore.rules`, `firebase-config.ts`) foi
+apresentado para revisão antes de ir ao disco. Cada decisão arquitetural
+foi alinhada antes de codar (8 perguntas no início da Release 2; 7 na
+Release 3). O atrito inicial paga em segurança e auditabilidade.
+
+**Lição extra: a IA pergunta, mas você decide.** A pergunta "para que
+vamos usar a OpenAI mesmo?", durante o início da Release 3, não foi
+resistência — foi uma chance de a IA explicar o **propósito** do recurso,
+e em troca o usuário pediu **Claude em vez de OpenAI**. Decisões boas
+saem de pausas curtas, não de execuções rápidas.
 
 > **Espaço para prints da entrega final:** *adicione capturas da página
 > de tarefas, do botão "Sugerir com IA" funcionando, e do log da Cloud

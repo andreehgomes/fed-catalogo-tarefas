@@ -70,8 +70,16 @@ Objetivo: sugestão de prioridade por IA, deploy real e documentação final.
   - Critério: a heurística e a chamada externa convivem sem código duplicado (lição da Unidade 3.2) — interface única `suggestPriority(input, options)`, decisão num único `if`.
   - Critério: cliente exibe `source: 'claude' | 'heuristic'` honestamente para o usuário.
 
-- [ ] **RNF-004** — Performance
-  - Critério: TTI < 3 s em throttling 3G no Lighthouse. *(Verificação manual após deploy — registrar números no README.)*
+- [ ] **RNF-004** — Performance ⚠️ **não cumprido nesta entrega**
+  - Critério: TTI < 3 s em throttling 3G no Lighthouse.
+  - Resultado: Lighthouse reporta Performance = 53 com aviso de timeout
+    (medição parcial). Bundle inicial de ~638 kb (acima dos 500 kb do
+    orçamento default do Angular) domina o TTI em conexões móveis.
+  - Justificativa: o foco da disciplina é IA aplicada, não engenharia de
+    performance web. As otimizações naturais (lazy-load AngularFire,
+    `defer` blocks, troca de estratégia Firestore) ficam como
+    continuidade do projeto.
+  - Detalhes no [README → Lighthouse](../README.md#lighthouse-entrega-final).
 
 - [ ] **Deploy** — Hosting + Functions em projeto Firebase real.
   *(Comandos prontos no README; usuário roda manualmente após `firebase functions:secrets:set ANTHROPIC_API_KEY`.)*
