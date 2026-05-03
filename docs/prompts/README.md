@@ -39,3 +39,4 @@ O que precisou ser corrigido/refinado depois do output da IA.
 ## Índice
 
 - [01 — Bootstrap completo da Release 1](./01-bootstrap.md)
+- [02 — Release 2: Qualidade (Auth, regras, testes, Makefile)](./02-release-2-quality.md)
