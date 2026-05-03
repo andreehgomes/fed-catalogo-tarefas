@@ -57,8 +57,8 @@ export type TaskUpdate = z.infer<typeof TaskUpdateSchema>;
 
 /**
  * Schema de saída: shape que o serviço expõe para a UI após ler do Firestore.
- * Inclui `id`, datas convertidas para `Date` e `userId` opcional (preenchido
- * a partir da Release 2, quando Auth entra).
+ * `userId` é obrigatório a partir da Release 2 — toda tarefa pertence a um
+ * usuário autenticado.
  */
 export const TaskOutSchema = z.object({
   id: z.string().min(1),
@@ -68,6 +68,6 @@ export const TaskOutSchema = z.object({
   status: z.enum(taskStatusValues),
   createdAt: z.date(),
   updatedAt: z.date(),
-  userId: z.string().optional(),
+  userId: z.string().min(1),
 });
 export type Task = z.infer<typeof TaskOutSchema>;
