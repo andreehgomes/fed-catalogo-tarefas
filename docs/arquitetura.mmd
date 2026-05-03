@@ -1,0 +1,36 @@
+%% Arquitetura macro do fed-catalogo-tarefas
+%% Renderize com qualquer cliente Mermaid (VS Code, GitHub, mermaid.live).
+
+flowchart LR
+    user["👤 Usuário"]
+
+    subgraph SPA["SPA Angular 19+ (standalone, Signals)"]
+        ui["Página /tasks<br/>(form + lista)"]
+        guard["AuthGuard"]
+        svc["TaskService<br/>(inject Firestore)"]
+        models["Schemas zod<br/>(TaskCreate / Task)"]
+    end
+
+    subgraph FB["Firebase"]
+        auth["Firebase Auth<br/>(e-mail/senha)"]
+        store[("Firestore<br/>collection: tasks")]
+        fn["Cloud Function<br/>suggestPriority"]
+    end
+
+    subgraph IA["Camada de IA (Release 3)"]
+        openai["OpenAI API<br/>(quando OPENAI_API_KEY presente)"]
+        fallback["Fallback heurístico<br/>(determinístico)"]
+    end
+
+    user --> ui
+    ui --> guard
+    guard -- "valida sessão" --> auth
+
+    ui -- "CRUD reativo" --> svc
+    svc -- "valida com zod" --> models
+    svc <-->|"AngularFire SDK"| store
+
+    ui -- "pede sugestão" --> fn
+    fn -->|"chave configurada"| openai
+    fn -->|"sem chave"| fallback
+    fn -- "retorna prioridade sugerida" --> ui
