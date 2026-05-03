@@ -2,21 +2,25 @@
 
 SPA pessoal de **gestão de tarefas** com persistência no Firebase Firestore,
 construída como entrega final da disciplina de pós-graduação em IA aplicada
-ao desenvolvimento de software. O projeto evolui em três releases — Core,
-Qualidade e Final — e na entrega final inclui uma sugestão de prioridade
-assistida por IA via Cloud Function (OpenAI com fallback heurístico local).
+ao desenvolvimento de software. O destaque é uma **sugestão de prioridade
+assistida por IA** via Cloud Function que chama o Claude Haiku 4.5 (Anthropic)
+e cai num fallback heurístico determinístico quando a chave não está
+configurada — ilustrando na prática a lição da Unidade 3.2 sobre evitar
+duplicação de lógica entre IA e fallback.
 
 ## Stack
 
-| Camada           | Tecnologia                                    |
-|------------------|-----------------------------------------------|
-| Frontend         | Angular 19+ (standalone, Signals, SCSS)       |
-| Persistência     | Firebase Firestore via AngularFire (`inject`) |
-| Autenticação     | Firebase Auth *(Release 2)*                   |
-| Backend serverless | Cloud Functions Node 20 *(Release 3)*       |
-| Validação runtime| zod                                           |
-| Hospedagem       | Firebase Hosting                              |
-| Smoke E2E        | Playwright (Chromium)                         |
+| Camada                | Tecnologia                                    |
+|-----------------------|-----------------------------------------------|
+| Frontend              | Angular 20 (standalone, Signals, SCSS)        |
+| Persistência          | Firebase Firestore via AngularFire (`inject`) |
+| Autenticação          | Firebase Auth (e-mail/senha + Google)         |
+| Backend serverless    | Cloud Functions Node 20 (callable v2)         |
+| IA de runtime         | Anthropic Claude Haiku 4.5 (`@anthropic-ai/sdk`) |
+| Validação runtime     | zod                                           |
+| Hospedagem            | Firebase Hosting                              |
+| Proteção contra abuso | Firestore Rules + Firebase App Check (reCAPTCHA v3) |
+| Testes                | Karma + Jasmine (unit) · Jest (functions) · Playwright + axe-core (E2E + a11y) |
 
 ## Como rodar (máquina limpa)
 
@@ -24,113 +28,200 @@ assistida por IA via Cloud Function (OpenAI com fallback heurístico local).
 
 ```bash
 # 1. Clone e entre no app
-cd fed-catalogo-tarefas-app
+git clone <repo>
+cd fed-catalogo-tarefas
 
-# 2. Instale dependências
-npm install
+# 2. Instale dependências do app e das functions
+cd fed-catalogo-tarefas-app && npm install
+cd ../functions && npm install
 
-# 3. (opcional) Suba o emulator de Firestore em outro terminal,
-#    a partir da raiz do repo (onde está firebase.json):
-cd ..
-firebase emulators:start --only firestore
+# 3. Rode o dev server
+cd ../fed-catalogo-tarefas-app
+npm start                     # ng serve em http://localhost:4200
 
-# 4. De volta no app, rode o dev server
-cd fed-catalogo-tarefas-app
-npm start              # ng serve em http://localhost:4200
+# 4. Em outro terminal, rode os testes (opcional)
+npm run test                  # unit tests Karma
+npm run e2e                   # Playwright E2E + axe a11y
 
-# 5. Smoke test (em outro terminal, com o ng serve no ar)
-npm run e2e
+# 5. Logue-se com email/senha ou Google e use o app.
+#    A página /login redireciona pra / depois do auth.
 ```
 
-> Em modo `development` o app conecta automaticamente em
-> `127.0.0.1:8080` (Firestore Emulator). Para deploy real, ajuste
-> `src/environments/firebase-config.ts` com a config do seu projeto Firebase.
+> Em desenvolvimento, o app conecta diretamente ao Firestore real do
+> projeto `fed-catalogo-tarefas`. As Firestore Rules (autenticadas)
+> garantem isolamento por usuário — você só vê suas próprias tarefas.
+
+### Macro-tarefas via Makefile (ou scripts npm equivalentes)
+
+| Comando | O que faz |
+|---|---|
+| `make install` | `npm install` em `fed-catalogo-tarefas-app/` e `functions/` |
+| `make serve` | `ng serve` |
+| `make test` | unit (Karma) + e2e (Playwright) |
+| `make lint` | `ng lint` |
+| `make build` | build de produção do app |
+| `make rules-deploy` | publica `firestore.rules` + `firestore.indexes.json` |
+
+> No Windows sem `make`, abra os comandos do `Makefile` direto no Git Bash.
 
 ## Documentação
 
 - [Escopo do MVP](./docs/escopo-MVP.md) — objetivo, RFs, RNFs e fora-de-escopo
 - [Backlog](./docs/backlog.md) — releases Core / Qualidade / Final
-- [Arquitetura](./docs/arquitetura.mmd) — diagrama Mermaid da topologia
-- [Decisões arquiteturais](./docs/decisoes.md) — DEC-001 (Firestore), DEC-002 (zod), DEC-003 (Signals)
+- [Arquitetura](./docs/arquitetura.mmd) — diagrama Mermaid
+- [Decisões arquiteturais (DEC-001..006)](./docs/decisoes.md)
 - [Prompts usados](./docs/prompts/) — registro de cada prompt enviado a IA
 
-## Roadmap
+## Roadmap (releases)
 
-Acompanhe o progresso no [backlog](./docs/backlog.md):
+- **Release 1 — Core (v0.1.0)** ✅ — CRUD básico de tarefas em Signals + zod, Playwright smoke.
+- **Release 2 — Qualidade (v0.2.0)** ✅ — Auth, regras de segurança autenticadas, isolamento por usuário, testes (16 unit + E2E), Makefile.
+- **Release 3 — Final (v1.0.0)** ✅ — Cloud Function `suggestPriority` com Claude + fallback heurístico, App Check (reCAPTCHA v3), deploy.
 
-- **Release 1 — Core (v0.1.0)**: CRUD básico de tarefas em Signals + zod, Playwright smoke.
-- **Release 2 — Qualidade (v0.2.0)**: Auth, regras de segurança, AuthGuard, testes, acessibilidade.
-- **Release 3 — Final (v1.0.0)**: Cloud Function `suggestPriority` (OpenAI + fallback) e deploy.
+## Como a IA foi usada neste projeto
+
+A disciplina trata de **IA aplicada ao desenvolvimento de software**, então
+a IA aparece em **dois lugares distintos** no projeto — fronteiras claras,
+papéis diferentes:
+
+### 1. IA como parceira de desenvolvimento
+
+A construção inteira do código foi conduzida com **Claude Code** (modelo
+Claude Opus 4.7 com 1M de contexto), em conversa interativa com o autor.
+**Nada foi gerado em batch sem revisão** — a IA propõe, o autor revisa,
+aprova ou redireciona. Cada prompt fica registrado em
+[`docs/prompts/`](./docs/prompts/):
+
+- [P-001 — Bootstrap completo da Release 1](./docs/prompts/01-bootstrap.md)
+- [P-002 — Release 2: Qualidade](./docs/prompts/02-release-2-quality.md)
+- [P-003 — Release 3: Final (Claude + App Check + deploy)](./docs/prompts/03-release-3-final.md)
+
+**Práticas explicitamente seguidas pela IA durante o desenvolvimento:**
+
+- **Confirmação antes de gravar arquivos sensíveis.** Ex.: `firebase.json`,
+  `firestore.rules` e `firebase-config.ts` foram apresentados como rascunho
+  no chat, com explicação, antes de ir para o disco. Isso reproduz a
+  prática da **Unidade 4.2** ("não fazer suposições silenciosas").
+- **Alertas explícitos de risco de duplicação.** Quando, na Release 1, a
+  IA percebeu que tinha escrito `tasksSignal` em dois lugares no
+  `TaskService`, ela parou e avisou — antes de eu pedir review. Foi a
+  primeira aplicação prática da **Unidade 3.2** (caso PriorityAdvisor).
+- **Decisões registradas com motivo, alternativas e consequências.** Veja
+  `docs/decisoes.md` — toda escolha "por que zod e não io-ts", "por que
+  Signals e não NgRx", "por que apiKey no Git", "por que Claude e não
+  OpenAI" tem ADR-lite com rationale.
+
+### 2. IA dentro do produto (runtime)
+
+A função `suggestPriority` é onde a IA aparece **em runtime, no produto,
+sendo útil para o usuário final**. Fluxo:
+
+```
+[usuário escreve título e descrição da tarefa]
+            ↓
+[clica "Sugerir com IA" no formulário]
+            ↓
+[Cloud Function callable suggestpriority]
+            ↓
+   ┌────────┴────────┐
+   ↓                 ↓
+Claude           Heurística
+Haiku 4.5      (fallback)
+   ↓                 ↓
+   └────────┬────────┘
+            ↓
+[priority + source devolvidos pro cliente]
+            ↓
+[select de prioridade preenchido + selo "via Claude" ou "via heurística"]
+```
+
+A interface do servidor é **uma só** (`suggestPriority(input, options)`), e
+a decisão entre Claude e heurística acontece em **um único `if`** dentro
+da função — exatamente o que a Unidade 3.2 ensina sobre **não duplicar
+lógica entre IA e fallback**. Veja
+[`functions/src/suggest-priority/index.ts`](./functions/src/suggest-priority/index.ts).
+
+O cliente exibe **honestamente** a fonte da sugestão para o usuário
+("Sugestão aplicada via Claude (Anthropic)" ou "via fallback heurístico").
+Sem fingir que sempre é IA.
+
+### Métricas e reflexões
+
+| Métrica                                                  | Valor       |
+|----------------------------------------------------------|-------------|
+| Releases entregues                                        | 3           |
+| Commits Conventional                                      | ~38         |
+| Prompts registrados (P-001..P-003)                        | 3           |
+| Decisões arquiteturais documentadas                       | 6           |
+| Modelo de IA de desenvolvimento                          | Claude Opus 4.7 (1M) |
+| Modelo de IA de runtime                                  | Claude Haiku 4.5 |
+| Custo médio por sugestão runtime                         | ~US$ 0,0001 |
+
+> **Espaço para prints da entrega final:** *adicione capturas da página
+> de tarefas, do botão "Sugerir com IA" funcionando, e do log da Cloud
+> Function mostrando `source: claude` e `source: heuristic`.*
 
 ## Segurança
 
-A `apiKey` do Firebase Web em [`firebase-config.ts`](./fed-catalogo-tarefas-app/src/environments/firebase-config.ts)
+A `apiKey` do Firebase Web em
+[`firebase-config.ts`](./fed-catalogo-tarefas-app/src/environments/firebase-config.ts)
 **é pública por design** — o SDK precisa dela em runtime no navegador, então
 ela aparece no JS de qualquer visitante do app independente de estar no Git
 ou em variáveis de ambiente. A doc oficial confirma:
 [Are Firebase API keys safe to expose?](https://firebase.google.com/docs/projects/api-keys)
 
-A segurança real do app é construída em camadas — veja
-[DEC-004](./docs/decisoes.md) para o raciocínio completo.
+A segurança real do app é construída em **5 camadas**, todas vivas e
+deployadas em produção — veja [DEC-004](./docs/decisoes.md) e
+[DEC-006](./docs/decisoes.md) para o raciocínio completo:
 
-### Checklist OBRIGATÓRIO antes do primeiro `firebase deploy`
+1. **Restrição HTTP referrer** na apiKey (limita QUEM pode usá-la).
+2. **Firebase Auth** (login obrigatório).
+3. **Firestore Security Rules autenticadas** com isolamento por `userId`.
+4. **App Check com reCAPTCHA v3** (garante que vem do SEU app).
+5. **Cloud Function** valida `request.auth` e `App Check` antes de chamar Claude.
 
-Sem cumprir este checklist, **não faça deploy** — o app ficaria aberto a
-abuso (escritas anônimas no Firestore, consumo da cota grátis etc.).
+A **chave da Anthropic**, ao contrário da apiKey Firebase, **é segredo
+real**. Ela vive no Google Secret Manager, exposta à Cloud Function via
+`defineSecret('ANTHROPIC_API_KEY')`. Configuração:
 
-- [ ] **1. Restringir a `apiKey` por domínio HTTP referrer** no Google Cloud Console:
-  1. Abra https://console.cloud.google.com/apis/credentials?project=fed-catalogo-tarefas
-  2. Edite a chave `Browser key (auto created by Firebase)`
-  3. Em *Application restrictions* escolha *HTTP referrers (web sites)*
-  4. Em *Website restrictions* adicione:
-     - `http://localhost:*/*`
-     - `http://127.0.0.1:*/*`
-     - `https://fed-catalogo-tarefas.web.app/*`
-     - `https://fed-catalogo-tarefas.firebaseapp.com/*`
-     - (eventual domínio próprio quando configurar)
-  5. Em *API restrictions* deixe restrita aos serviços que o app usa
-     (Cloud Firestore, Identity Toolkit, Cloud Functions).
-  6. Salve.
+```bash
+firebase functions:secrets:set ANTHROPIC_API_KEY
+# cole a chave quando solicitado
+```
 
-- [ ] **2. Trocar as `firestore.rules` para regras autenticadas.**
-  As regras atuais (Release 1) liberam tudo — adequadas apenas para o
-  Firestore Emulator local. Antes de deploy, ou:
-  - **(opção segura)** entregar a Release 2 com Auth + rules
-    `request.auth != null && request.auth.uid == resource.data.userId`; ou
-  - **(opção temporária)** trocar manualmente as rules para
-    `allow read, write: if false;` para deploy intermediário.
+### Checklist de deploy
 
-- [ ] **3. Configurar Firebase App Check** com reCAPTCHA v3 *(Release 2/3)*:
+Em ordem, antes de cada novo deploy de produção:
+
+- [ ] **1. Restringir a `apiKey` por HTTP referrer** no Google Cloud
+  Console → Credentials → "Browser key" → HTTP referrers:
+  - `http://localhost/*`, `http://127.0.0.1/*`,
+    `https://fed-catalogo-tarefas.web.app/*`,
+    `https://fed-catalogo-tarefas.firebaseapp.com/*`
+- [ ] **2. Habilitar provedores de Auth** em
+  https://console.firebase.google.com/project/fed-catalogo-tarefas/authentication/providers
+  (Email/Password e Google).
+- [ ] **3. Configurar a chave Anthropic** como segredo:
+  `firebase functions:secrets:set ANTHROPIC_API_KEY`.
+- [ ] **4. Registrar reCAPTCHA v3** em
   https://console.firebase.google.com/project/fed-catalogo-tarefas/appcheck
-
-- [ ] **4. (Opcional) Configurar alertas de orçamento** no Google Cloud
-  para não ser surpreendido caso algum abuso passe pelas camadas anteriores:
+  e colar a *site key* em `firebase-config.ts` → `recaptchaSiteKey`.
+- [ ] **5. Publicar rules + indexes**:
+  `firebase deploy --only firestore:rules,firestore:indexes`.
+- [ ] **6. Deploy da app + functions**: `firebase deploy`.
+- [ ] **7. Aguardar 24-48h** monitorando App Check Métricas, depois
+  **ligar enforcement** em Authentication, Firestore e Functions no
+  console (Fase B do DEC-006).
+- [ ] **8. Configurar alertas de orçamento** em
   https://console.cloud.google.com/billing/budgets?project=fed-catalogo-tarefas
+  (recomendação: US$ 5/mês para o plano Blaze).
 
 ### O que NÃO funcionaria como segurança
 
-- ❌ Esconder a `apiKey` em `.env.local` — ela acaba no bundle de qualquer jeito.
+- ❌ Esconder a `apiKey` Firebase em `.env.local` — ela acaba no bundle.
 - ❌ Ofuscar/minificar o JavaScript — DevTools mostra tudo.
-- ❌ Rotacionar a chave periodicamente — não há mecanismo automático e
-  cada rotação exige redeploy.
-
-## Como a IA foi usada neste projeto
-
-> *Esta seção será expandida na Release 3 com prints, métricas e reflexões.*
-
-A construção do projeto foi conduzida com IA assistente (Claude Code, modelo
-Claude Opus 4.7 1M) seguindo o processo da disciplina:
-
-1. **Cada prompt é registrado** em [`docs/prompts/`](./docs/prompts/) com
-   modelo, data, release, prompt enviado, resultado, ajustes manuais
-   necessários e lições aprendidas.
-2. **A IA pergunta antes de gravar arquivos sensíveis** (ex.: `firebase.json`,
-   `firestore.rules`), reproduzindo a prática da Unidade 4.2 do material
-   (não fazer suposições silenciosas).
-3. **Alertas explícitos de duplicação** quando a IA identifica risco do
-   *anti-padrão PriorityAdvisor* (Unidade 3.2): mesma lógica em duas camadas.
-4. **Decisões arquiteturais** ficam em `docs/decisoes.md`, sempre com
-   contexto, motivo e alternativas consideradas.
+- ❌ Rotacionar a chave Firebase — não há mecanismo automático.
+- ❌ Confiar **só** em Auth ou **só** em rules — defesa em profundidade.
 
 ## Licença
 
