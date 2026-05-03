@@ -1,6 +1,19 @@
 <header class="app-header">
-  <h1>{{ title() }}</h1>
-  <p class="app-header__subtitle">Catálogo pessoal de tarefas — Release 1 (Core)</p>
+  <div class="app-header__brand">
+    <h1>{{ title() }}</h1>
+    <p class="app-header__subtitle">Catálogo pessoal de tarefas</p>
+  </div>
+
+  @if (userLabel(); as label) {
+    <div class="app-header__user">
+      <span class="app-header__user-label" aria-label="Usuário autenticado">
+        {{ label }}
+      </span>
+      <button type="button" class="app-header__signout" (click)="signOut()">
+        Sair
+      </button>
+    </div>
+  }
 </header>
 
 <main class="app-main">

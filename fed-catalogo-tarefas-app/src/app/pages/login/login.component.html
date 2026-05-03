@@ -1,0 +1,57 @@
+<section class="login" aria-labelledby="login-title">
+  <h2 id="login-title">{{ title() }}</h2>
+
+  <form
+    class="login__form"
+    (submit)="submit(); $event.preventDefault()"
+    aria-describedby="login-error"
+  >
+    <label class="login__field">
+      <span>E-mail</span>
+      <input
+        type="email"
+        name="email"
+        autocomplete="email"
+        required
+        [ngModel]="form().email"
+        (ngModelChange)="updateField('email', $event)"
+      />
+    </label>
+
+    <label class="login__field">
+      <span>Senha</span>
+      <input
+        type="password"
+        name="password"
+        [autocomplete]="mode() === 'sign-in' ? 'current-password' : 'new-password'"
+        minlength="6"
+        required
+        [ngModel]="form().password"
+        (ngModelChange)="updateField('password', $event)"
+      />
+    </label>
+
+    <button type="submit" class="login__submit" [disabled]="busy()">
+      {{ busy() ? 'Aguarde…' : submitLabel() }}
+    </button>
+  </form>
+
+  <div class="login__divider" role="separator" aria-orientation="horizontal">ou</div>
+
+  <button
+    type="button"
+    class="login__google"
+    (click)="signInWithGoogle()"
+    [disabled]="busy()"
+  >
+    Entrar com Google
+  </button>
+
+  <button type="button" class="login__toggle" (click)="toggleMode()">
+    {{ toggleLabel() }}
+  </button>
+
+  @if (errorMessage(); as msg) {
+    <p id="login-error" class="login__error" role="alert">{{ msg }}</p>
+  }
+</section>
