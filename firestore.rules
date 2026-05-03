@@ -1,24 +1,52 @@
 rules_version = '2';
 
 // =====================================================================
-// ⚠️  ATENÇÃO — REGRAS PERMISSIVAS PARA DESENVOLVIMENTO LOCAL ⚠️
+// Firestore Security Rules — Release 2
 // ---------------------------------------------------------------------
-//  Esta versão das regras LIBERA leitura e escrita de TODA a base.
-//  Foi escrita para o uso EXCLUSIVO com o Firestore Emulator durante a
-//  Release 1 (Core), enquanto Auth ainda não foi integrado.
+//  Regras autenticadas com isolamento por usuário.
+//  Cada documento da coleção `tasks` carrega um campo `userId` que
+//  amarra a tarefa ao dono. Apenas o dono pode ler, atualizar ou
+//  deletar a tarefa; a criação exige que o `userId` do payload
+//  coincida com `auth.uid`. O update bloqueia a troca do `userId`
+//  para impedir transferência maliciosa.
 //
-//  NÃO faça deploy destas regras em produção.
-//
-//  Na Release 2 (Qualidade) estas regras serão substituídas por:
-//    - allow read, write: if request.auth != null
-//        && request.auth.uid == resource.data.userId;
-//  ou seja, cada usuário só enxerga e altera as próprias tarefas.
+//  Para publicar estas regras no projeto online:
+//      firebase deploy --only firestore:rules
+//  (ou via Makefile, alvo `make rules-deploy`)
 // =====================================================================
 
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function ownsDoc() {
+      return isSignedIn()
+        && resource != null
+        && resource.data.userId == request.auth.uid;
+    }
+
+    function isCreatingOwnDoc() {
+      return isSignedIn()
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    function isPreservingOwner() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    match /tasks/{taskId} {
+      allow get:    if ownsDoc();
+      allow list:   if isSignedIn();
+      allow create: if isCreatingOwnDoc();
+      allow update: if ownsDoc() && isPreservingOwner();
+      allow delete: if ownsDoc();
+    }
+
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }
