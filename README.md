@@ -205,13 +205,32 @@ resistência — foi uma chance de a IA explicar o **propósito** do recurso,
 e em troca o usuário pediu **Claude em vez de OpenAI**. Decisões boas
 saem de pausas curtas, não de execuções rápidas.
 
-> **Espaço para prints da entrega final:** 
+### Evidências da entrega
 
-![alt text](./imagens_evidencias/image.png)
-![alt text](./imagens_evidencias/image_2.png)
-![alt text](./imagens_evidencias/image_3.png)
-![alt text](./imagens_evidencias/image_4.png)
-![alt text](./imagens_evidencias/image_5.png)
+**1. Tela de login com email/senha + Google**
+
+![Tela de login com formulário de email e senha e botão "Entrar com Google"](./imagens_evidencias/01-login.png)
+
+**2. Página de tarefas com lista**
+
+![Página /tasks autenticada exibindo o formulário de criação e a lista de tarefas do usuário](./imagens_evidencias/02-tasks-list.png)
+
+**3. Form de criação com sugestão aplicada via Claude**
+
+![Formulário de criação com prioridade preenchida automaticamente e selo "Sugestão aplicada via Claude (Anthropic)"](./imagens_evidencias/03-suggest-claude.png)
+
+**4. Console Firebase mostrando documentos em `/tasks`**
+
+![Cloud Firestore Console exibindo a coleção tasks com documentos contendo userId, priority, status, createdAt e updatedAt](./imagens_evidencias/04-firestore-console.png)
+
+**5. Logs da Cloud Function `suggestpriority`**
+
+![Logs do Firebase Functions mostrando verifications app:VALID e auth:VALID, com source:claude e priority:high retornados pela função](./imagens_evidencias/05-functions-log.png)
+
+> O log mostra `"verifications":{"app":"VALID","auth":"VALID"}` — confirmando
+> que App Check (Fase A) está anexando token reCAPTCHA v3 às chamadas — e
+> `"source":"claude","priority":"high"` — confirmando que a Cloud Function
+> está chamando o Claude Haiku 4.5 e devolvendo a prioridade sugerida.
 
 
 ## Segurança
