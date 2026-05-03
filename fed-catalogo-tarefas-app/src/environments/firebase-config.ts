@@ -48,4 +48,4 @@ export const firebaseConfig = {
  * Após colar a site key, basta dar reload: o token passa a ser anexado
  * automaticamente nas chamadas a Firestore/Functions.
  */
-export const recaptchaSiteKey: string | null = null;
+export const recaptchaSiteKey: string | null = '6LeewNcsAAAAAJfMcWOHXccEzPwrXQ3ySrBaN5HF';
