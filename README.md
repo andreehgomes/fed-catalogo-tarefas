@@ -70,6 +70,7 @@ npm run e2e                   # Playwright E2E + axe a11y
 - [Backlog](./docs/backlog.md) — releases Core / Qualidade / Final
 - [Arquitetura](./docs/arquitetura.mmd) — diagrama Mermaid
 - [Decisões arquiteturais (DEC-001..006)](./docs/decisoes.md)
+- [Gestão de riscos e comunicação](./docs/riscos/) — identificação, análise, resposta e status para stakeholders
 - [Prompts usados](./docs/prompts/) — registro de cada prompt enviado a IA
 
 ## Roadmap (releases)
