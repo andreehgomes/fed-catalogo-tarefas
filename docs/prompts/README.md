@@ -41,3 +41,6 @@ O que precisou ser corrigido/refinado depois do output da IA.
 - [01 — Bootstrap completo da Release 1](./01-bootstrap.md)
 - [02 — Release 2: Qualidade (Auth, regras, testes, Makefile)](./02-release-2-quality.md)
 - [03 — Release 3: Final (Cloud Function com Claude + App Check)](./03-release-3-final.md)
+- [04 — Prompts para testes de integração (fórum Unidade III)](../pos-ia/forum-testes-integracao/prompts/README.md)
+  — quatro tipos de prompt (cenários, dados, casos de erro, contrato), nove
+  iterações registradas e a suíte executável que elas produziram.
