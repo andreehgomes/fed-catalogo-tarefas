@@ -1,0 +1,127 @@
+Olá, pessoal!
+
+Segue meu relato do miniprojeto. Adaptei o laboratório para GitHub Actions, por não ter conta no GitLab, mantendo a mesma arquitetura: um estágio de teste e um estágio de análise que só roda quando o teste falha.
+
+
+1. REPOSITÓRIO
+
+https://github.com/andreehgomes/fed-catalogo-tarefas
+
+Lab: labs/devops-genai-lab/
+Pipeline: .github/workflows/devops-genai-lab.yml
+Pull Request com o diagnóstico: https://github.com/andreehgomes/fed-catalogo-tarefas/pull/1
+
+Os arquivos seguem o roteiro da Unidade 5: app.py (OrderService), tests/test_app.py, genai_analyst.py (agente), requirements.txt e o workflow no lugar do .gitlab-ci.yml.
+
+
+2. EXECUÇÃO DO PROJETO
+
+Montei o cenário de forma um pouco diferente do roteiro, e isso acabou sendo o ponto mais interessante do exercício.
+
+Em vez de subir o código já quebrado, subi o laboratório funcionando na main — pipeline verde, 5 testes passando. Só então criei a branch feature/nova-logica introduzindo o defeito e abri o PR. O resultado foram quatro execuções que contam a história inteira:
+
+- Run 1 — push na main (código correto): sucesso em 11s
+- Run 2 — push da feature/nova-logica: falha em 22s
+- Run 3 — abertura do PR: unit_test falhou, ai_debugger rodou
+- Run 5 — novo push no PR, já com a chave de API: unit_test falhou, ai_debugger concluiu em 40s
+
+A diferença entre o run 1 e o run 2 isola a regressão na mudança da branch, que é justamente a correlação que o agente recebe no prompt (trace + diff).
+
+No PR, o unit_test falhou em 9s e o ai_debugger foi disparado logo em seguida pela condição "if: failure()" — o equivalente ao "when: on_failure" do GitLab. O diagnóstico apareceu como comentário no próprio PR e no resumo da execução.
+
+Os runs 3 e 5 mostram os dois modos do agente lado a lado no mesmo PR: no run 3, ainda sem chave cadastrada, ele montou o prompt e publicou um comentário avisando disso, sem derrubar o pipeline; no run 5, já com a chave, publicou a análise completa.
+
+Trecho do log do unit_test:
+
+    tests/test_app.py::test_calculate_tax_aplica_aliquota_sobre_subtotal FAILED [ 80%]
+    tests/test_app.py::test_calculate_order_total_sudeste FAILED             [100%]
+
+    subtotal = 100.0
+
+        def calculate_tax(subtotal: float) -> float:
+    >       return subtotal + TAX_RATE
+    E       TypeError: unsupported operand type(s) for +: 'float' and 'str'
+
+    app.py:41: TypeError
+    ========================= 2 failed, 3 passed in 0.03s ==========================
+    Error: Process completed with exit code 1.
+
+
+3. ANÁLISE COM IA GENERATIVA
+
+O erro: um TypeError em calculate_tax(). A alíquota de imposto passou a ser declarada como texto (TAX_RATE = "0.07") e o código a soma a um float.
+
+O que torna o caso representativo é COMO o defeito entrou. O diff do PR tem três linhas e se apresenta como uma refatoração plausível:
+
+    - # Versao correta: aliquota como numero decimal.
+    - TAX_RATE = 0.07
+    + # Alterado nesta branch: aliquota passou a ser lida como texto de configuracao.
+    + TAX_RATE = "0.07"
+
+    -     return subtotal * (1 + TAX_RATE)
+    +     return subtotal + TAX_RATE
+
+É sintaticamente válido, o módulo importa sem reclamar, e passa fácil numa revisão rápida. Note também que 3 dos 5 testes continuam passando — a falha é parcial, não uma quebra geral, o que num projeto real tornaria o diagnóstico menos óbvio.
+
+Como a IA contribui: o genai_analyst.py coleta o trace do pytest (artefato publicado pelo job anterior) e o diff do PR, monta um prompt estruturado pedindo quatro seções — causa-raiz, correção sugerida, riscos e efeitos colaterais, e como validar — e publica a resposta no PR. O prompt inclui duas restrições deliberadas: "não invente arquivos ou funções que não apareçam nas evidências" e "se a evidência for insuficiente, diga o que falta", para reduzir a chance de uma resposta confiante e errada.
+
+O ganho não é só apontar a linha — isso o próprio pytest já faz. É ligar a falha à mudança que a causou, cruzando trace e diff, e entregar isso no PR, onde a revisão já está acontecendo.
+
+O QUE A IA RESPONDEU
+
+Rodei com a API da Anthropic (claude-opus-5-5), e o resultado foi mais interessante do que eu esperava. A análise identificou que são dois defeitos, não um — o tipo E a fórmula — e foi explícita sobre a consequência disso:
+
+    "Atenção: corrigir só o tipo não basta. Com TAX_RATE = 0.07, a expressão
+    subtotal + TAX_RATE devolveria 100.07, e o teste espera 107.00. A fórmula
+    também regrediu: ela somava a alíquota ao valor em vez de aplicá-la como
+    percentual."
+
+Ou seja: ela recusou a correção float(TAX_RATE), que é a resposta aparentemente óbvia para um TypeError de float + str, porque essa correção faria o código rodar devolvendo o número errado. Também observou que calculate_tax devolve subtotal + imposto apesar do nome sugerir só o imposto, e levantou um risco que não falharia em teste nenhum: se a alíquota vier de configuração como "7" em vez de "0.07", o imposto vira 700% silenciosamente.
+
+E aqui está o achado que mais me interessou. No mesmo PR eu havia atualizado o modelo padrão do agente, e a IA comentou:
+
+    "O padrão mudou de 'claude-sonnet-4-5' para 'claude-opus-5-5'. Não consigo
+    confirmar pelas evidências que esse identificador existe. Se for inválido,
+    a chamada à API falha (provavelmente com erro 4xx)."
+
+A conclusão está errada — o modelo existe, e a própria análise foi gerada por ele. Mas o raciocínio está certo: o nome não aparecia nas evidências enviadas e é posterior ao corte de conhecimento do modelo. Ela sinalizou a incerteza em vez de afirmar, o que é o comportamento desejável — e ainda assim chegou a uma conclusão prática equivocada. É a limitação da Unidade 5 acontecendo ao vivo: o modelo só enxerga o que entra no prompt.
+
+Conferi cada afirmação da análise. Todas corretas, exceto essa.
+
+
+4. DESAFIOS ENCONTRADOS
+
+Plataforma diferente da do roteiro. Sem conta no GitLab, migrei para o GitHub Actions. O conceito se mantém, mas dois pontos exigiram tradução: "when: on_failure" virou "if: failure()", e, como no GitHub cada job roda em uma máquina limpa, o trace do pytest não fica disponível para o job seguinte por padrão. Resolvi publicando o log como artefato no unit_test e baixando-o no ai_debugger. No GitLab isso é transparente, porque o agente lê o log pela API.
+
+Encadeamento condicional. No GitHub Actions um job com "needs:" é PULADO quando o anterior falha — o oposto do que o laboratório precisa. Foi preciso combinar "needs: unit_test" com "if: failure()" para que o agente rodasse exatamente no cenário de falha.
+
+Montar um defeito que não se entregue. Reescrever o bug como uma mudança de diff plausível deu mais trabalho do que copiar o exemplo pronto, mas evita que o agente acerte por causa de uma pista explícita no código em vez do raciocínio sobre as evidências.
+
+Agente que não derruba o pipeline. O genai_analyst.py trata falha de HTTP, ausência de chave e erro inesperado retornando 0. Um agente de diagnóstico que quebra o pipeline por conta própria troca um problema por outro.
+
+Segredo fora do código. A chave fica em Settings > Secrets and variables > Actions, lida via secrets.* e mascarada no log pelo GitHub. O script detecta qual provedor está configurado e, sem chave nenhuma, apenas imprime o prompt e encerra sem falhar — foi assim que validei o fluxo antes de ligar o modelo.
+
+
+5. REFLEXÃO CRÍTICA
+
+VANTAGENS
+
+A mais concreta é reduzir o tempo de diagnóstico: o log do runner é longo e o desenvolvedor precisa abrir o Actions, achar o job, expandir o passo certo. A análise chega pronta no PR. Como recebe o diff junto com o trace, a IA consegue responder a pergunta que o pytest não responde — o que mudou para isso quebrar. E há um efeito didático: a explicação em linguagem natural ensina quem está lendo.
+
+LIMITAÇÕES
+
+A IA só enxerga o que entra no prompt. No meu caso são o trace e o diff, truncados em 6.000 caracteres cada — ela não conhece a regra de negócio, o histórico do serviço nem o resto do código. Daí vem o risco mais sério: ela produz texto plausível, e plausível não é sinônimo de correto. Uma sugestão errada com aparência de certa custa mais caro do que nenhuma sugestão, porque desloca a investigação para o lado errado.
+
+E foi exatamente isso que aconteceu comigo, no comentário sobre o nome do modelo: uma afirmação bem fundamentada, com a incerteza sinalizada, e mesmo assim factualmente errada. Se eu tivesse aceitado, teria revertido uma mudança correta.
+
+Vale registrar o outro lado, porque contraria o que eu esperava. A crítica comum a este laboratório é que a IA tende a corrigir o sintoma — sugerir float(TAX_RATE), fazer o teste passar e deixar o problema de fundo. No meu caso ela não caiu nisso: recusou a correção óbvia justamente porque ela produziria o número errado, e apontou riscos que nenhum teste pegaria. Não acho que isso generalize — depende do modelo, do prompt e de quanto contexto entra. Mas mostra que a qualidade da análise depende bastante do que você coloca no prompt: aqui, o diff ao lado do trace foi o que permitiu ver que duas coisas mudaram, não uma.
+
+Há ainda os riscos de enviar log e código para um serviço externo (dados sensíveis, LGPD) e o fato de o diff ser um vetor de prompt injection: quem escreve o código controla parte do que o agente lê.
+
+POR QUE VALIDAR ANTES DE APLICAR
+
+Porque a IA não executa os testes, não conhece a regra de negócio e não responde por uma falha em produção — quem aprova o merge responde. O valor do arranjo está justamente na separação de papéis que o curso enfatiza: a IA sugere, o humano valida, a automação executa. Se a sugestão for aplicada sem revisão, a automação passa a executar uma hipótese, e um erro do modelo vira um erro em produção.
+
+Por isso o comentário gerado pelo bot termina sempre com "revise antes de aplicar". Não é formalidade: é o ponto de controle que mantém a GenAI no papel de copiloto, e não de autoridade final.
+
+Abraço!
