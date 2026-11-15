@@ -85,8 +85,9 @@ def call_anthropic(api_key: str, prompt: str) -> str:
     body = post_json(
         "https://api.anthropic.com/v1/messages",
         {
-            "model": os.getenv("GENAI_MODEL", "claude-sonnet-4-5"),
-            "max_tokens": 1500,
+            "model": os.getenv("GENAI_MODEL", "claude-opus-5-5"),
+            "max_tokens": 4000,
+            "output_config": {"effort": "medium"},
             "messages": [{"role": "user", "content": prompt}],
         },
         {
