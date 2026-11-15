@@ -33,20 +33,24 @@ GitHub Actions. O mapeamento dos conceitos:
 
 - [Histórico de execuções](evidencias/historico-runs.md)
 - [Log completo da falha](evidencias/log-unit-test-falha.md)
+- [Análise gerada pela IA](evidencias/analise-ia-comentario-pr.md) — com
+  verificação humana de cada afirmação
 - Print do pipeline: `01-pipeline-unit-test-falha-ai-debugger-sucesso.jpg`
 - Print do log: `02-log-typeerror-pytest.jpg`
+- Print dos dois comentários no PR: `03-comentario-ia-no-pr.jpg`
+- Print da análise (dois defeitos): `04-analise-ia-dois-defeitos.jpg`
 
 Links no GitHub:
 
 - [PR #1](https://github.com/andreehgomes/fed-catalogo-tarefas/pull/1)
 - [Execuções do workflow](https://github.com/andreehgomes/fed-catalogo-tarefas/actions)
 
-## Pendência
+## Estado
 
-O comentário publicado no PR ainda indica que a chave de API não está
-configurada. Para obter o diagnóstico real da IA:
+Laboratório concluído. O agente rodou nos dois modos no mesmo PR: sem chave
+(run #3, comentário avisando que não houve chamada ao modelo) e com
+`ANTHROPIC_API_KEY` cadastrada (run #5, análise completa em 40s).
 
-1. cadastrar `ANTHROPIC_API_KEY` em *Settings → Secrets and variables → Actions*;
-2. re-executar o job `ai_debugger` no run do PR (botão **Re-run jobs**);
-3. copiar o diagnóstico gerado para a seção 3 do post, no lugar do trecho
-   marcado como pendente.
+A chave fica em *Settings → Secrets and variables → Actions* e é mascarada pelo
+GitHub nos logs. O script detecta `ANTHROPIC_API_KEY` ou `OPENAI_API_KEY` e,
+sem nenhuma das duas, apenas imprime o prompt sem falhar.

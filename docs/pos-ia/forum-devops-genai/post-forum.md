@@ -37,6 +37,7 @@ execuções que contam a história inteira:
 | #1 | push na `main` (código correto) | ✅ sucesso em 11s |
 | #2 | push da `feature/nova-logica` | ❌ falha em 22s |
 | #3 | abertura do PR #1 | ❌ `unit_test` / ✅ `ai_debugger` |
+| #5 | novo push no PR, já com a chave de API | ❌ `unit_test` / ✅ `ai_debugger` em 40s |
 
 A diferença entre o run #1 e o #2 isola a regressão na mudança da branch, que é
 justamente a correlação que o agente recebe no prompt (trace + diff).
@@ -45,6 +46,11 @@ No PR, o `unit_test` falhou em 9s e o `ai_debugger` foi disparado logo em
 seguida pela condição `if: failure()` — o equivalente ao `when: on_failure` do
 GitLab. O diagnóstico apareceu como comentário no próprio PR e no resumo da
 execução.
+
+Os runs #3 e #5 mostram os dois modos do agente lado a lado no mesmo PR: no #3,
+ainda sem chave cadastrada, ele montou o prompt e publicou um comentário
+avisando disso, sem derrubar o pipeline; no #5, já com a chave, publicou a
+análise completa.
 
 Trecho do log do `unit_test`:
 
@@ -98,7 +104,39 @@ O ganho não é só apontar a linha — isso o próprio pytest já faz. É **lig
 falha à mudança que a causou**, cruzando trace e diff, e entregar isso no PR,
 onde a revisão já está acontecendo.
 
-<!-- TRECHO PENDENTE: colar aqui o diagnóstico real da IA, após cadastrar a chave e re-executar o job -->
+**O que a IA respondeu.** Rodei com a API da Anthropic (`claude-opus-5-5`), e o
+resultado foi mais interessante do que eu esperava. A análise identificou que
+**são dois defeitos, não um** — o tipo *e* a fórmula — e foi explícita sobre a
+consequência disso:
+
+> **Atenção:** corrigir só o tipo não basta. Com `TAX_RATE = 0.07`, a expressão
+> `subtotal + TAX_RATE` devolveria `100.07`, e o teste espera `107.00`. A
+> fórmula também regrediu: ela somava a alíquota ao valor em vez de aplicá-la
+> como percentual.
+
+Ou seja: ela **recusou** a correção `float(TAX_RATE)`, que é a resposta
+aparentemente óbvia para um `TypeError` de `float + str`, porque essa correção
+faria o código rodar devolvendo o número errado. Também observou que
+`calculate_tax` devolve `subtotal + imposto` apesar do nome sugerir só o
+imposto, e levantou um risco que não falharia em teste nenhum: se a alíquota
+vier de configuração como `"7"` em vez de `"0.07"`, o imposto vira 700%
+silenciosamente.
+
+E aqui está o achado que mais me interessou. No mesmo PR eu havia atualizado o
+modelo padrão do agente, e a IA comentou:
+
+> O padrão mudou de `"claude-sonnet-4-5"` para `"claude-opus-5-5"`. Não consigo
+> confirmar pelas evidências que esse identificador existe. Se for inválido, a
+> chamada à API falha (provavelmente com erro 4xx).
+
+A conclusão está **errada** — o modelo existe, e a própria análise foi gerada
+por ele. Mas o raciocínio está certo: o nome não aparecia nas evidências
+enviadas e é posterior ao corte de conhecimento do modelo. Ela sinalizou a
+incerteza em vez de afirmar, o que é o comportamento desejável — e ainda assim
+chegou a uma conclusão prática equivocada. É a limitação da Unidade 5
+acontecendo ao vivo: o modelo só enxerga o que entra no prompt.
+
+Conferi cada afirmação da análise. Todas corretas, exceto essa.
 
 ## 4. Desafios encontrados
 
@@ -145,12 +183,20 @@ produz texto *plausível*, e plausível não é sinônimo de correto. Uma sugest
 errada com aparência de certa custa mais caro do que nenhuma sugestão, porque
 desloca a investigação para o lado errado.
 
-Vale notar um caso concreto disso neste laboratório. A correção óbvia aqui seria
-`float(TAX_RATE)`, e ela faz os testes passarem. Mas é correção de **sintoma**:
-se o valor vier de uma configuração externa com um texto inválido, o `TypeError`
-só vira `ValueError`. A decisão de projeto — validar na origem, tipar a
-configuração, usar `Decimal` em valores monetários — exige contexto que não está
-no prompt. A IA resolve o teste; o engenheiro resolve o problema.
+E foi exatamente isso que aconteceu comigo, no comentário sobre o nome do
+modelo: uma afirmação bem fundamentada, com a incerteza sinalizada, e mesmo
+assim factualmente errada. Se eu tivesse aceitado, teria revertido uma mudança
+correta.
+
+Vale registrar o outro lado, porque contraria o que eu esperava. A crítica
+comum a este laboratório é que a IA tende a corrigir o **sintoma** — sugerir
+`float(TAX_RATE)`, fazer o teste passar e deixar o problema de fundo. No meu
+caso ela não caiu nisso: recusou a correção óbvia justamente porque ela
+produziria o número errado, e apontou riscos que nenhum teste pegaria. Não
+acho que isso generalize — depende do modelo, do prompt e de quanto contexto
+entra. Mas mostra que a qualidade da análise depende bastante de **o que você
+coloca no prompt**: aqui, o diff ao lado do trace foi o que permitiu ver que
+duas coisas mudaram, não uma.
 
 Há ainda os riscos de enviar log e código para um serviço externo (dados
 sensíveis, LGPD) e o fato de o diff ser um vetor de *prompt injection*: quem
