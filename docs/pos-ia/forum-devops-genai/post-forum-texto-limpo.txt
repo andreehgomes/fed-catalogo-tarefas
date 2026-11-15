@@ -124,4 +124,12 @@ Porque a IA não executa os testes, não conhece a regra de negócio e não resp
 
 Por isso o comentário gerado pelo bot termina sempre com "revise antes de aplicar". Não é formalidade: é o ponto de controle que mantém a GenAI no papel de copiloto, e não de autoridade final.
 
+
+EVIDÊNCIAS (EM ANEXO)
+
+- Figura 1: grafo do pipeline no GitHub Actions — unit_test falhou e ai_debugger rodou em seguida
+- Figura 2: log do unit_test com o TypeError (2 falhas, 3 testes passando)
+- Figura 3: os dois comentários do bot no PR — sem chave e com a análise completa
+- Figura 4: trecho da análise identificando os dois defeitos e recusando a correção float()
+
 Abraço!

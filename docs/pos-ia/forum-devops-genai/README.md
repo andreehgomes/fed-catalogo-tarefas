@@ -29,6 +29,21 @@ O print `05-teste-colagem-tinymce.jpg` mostra o resultado no editor.
 
 Se a colagem falhar, `post-forum-texto-limpo.txt` serve de alternativa.
 
+### Imagens
+
+Arraste os 4 arquivos de [`evidencias/anexos-forum/`](evidencias/anexos-forum/)
+para o campo **Anexo**, abaixo do editor, **na ordem do nome** (figura-1 a
+figura-4). Elas aparecem renderizadas no corpo do post, uma abaixo da outra,
+e são clicáveis para ampliar — é como os colegas publicaram.
+
+O post já termina com a seção "Evidências (em anexo)" descrevendo cada figura,
+então a ordem do upload precisa bater com a lista.
+
+Total: 288 KB (limite do fórum: 9 arquivos, 1 GB).
+
+Alternativa: inserir cada imagem no meio do texto pelo botão de imagem da
+barra do editor. Fica mais legível, mas exige posicionar uma a uma.
+
 ## Laboratório
 
 O código fica em [`labs/devops-genai-lab/`](../../../labs/devops-genai-lab/)
