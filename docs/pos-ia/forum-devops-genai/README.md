@@ -1,7 +1,11 @@
 # Fórum — Miniprojeto de DevOps com IA Generativa
 
 Curso 14 — Manutenção, DevOps e Operações com GenAI (Unidade 5).
-Prazo: segunda-feira, 16/11/2026, às 12h.
+
+**Publicado em 15/11/2026** —
+[post no fórum](https://ava.akcit.ufg.br/mod/forum/discuss.php?d=3859#p35597)
+(prazo era 16/11 às 12h). As 4 imagens entraram no corpo do texto.
+Print do resultado: `evidencias/07-post-publicado-forum.jpg`.
 
 ## Conteúdo
 
