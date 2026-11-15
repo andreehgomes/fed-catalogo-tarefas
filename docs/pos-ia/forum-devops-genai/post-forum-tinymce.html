@@ -7,7 +7,12 @@
 <body style="font-family: Georgia, serif; max-width: 820px; margin: 2rem auto; padding: 0 1.5rem; line-height: 1.6;">
 
 <div style="background:#fffbe6; border:1px solid #e0c84a; padding:12px 16px; margin-bottom:28px; font-family:system-ui,sans-serif; font-size:14px; line-height:1.5;">
-  <strong>Como usar:</strong> selecione tudo a partir de &ldquo;Ol&aacute;, pessoal!&rdquo; (logo abaixo desta caixa) at&eacute; o &ldquo;Abra&ccedil;o!&rdquo; no final, copie com Ctrl+C e cole no editor avan&ccedil;ado do f&oacute;rum. N&atilde;o copie esta caixa amarela.
+  <strong>Como usar &mdash; 2 passos:</strong>
+  <ol style="margin:8px 0 0; padding-left:20px;">
+    <li><strong>Colar o texto:</strong> selecione a partir de &ldquo;Ol&aacute;, pessoal!&rdquo; (abaixo desta caixa) at&eacute; o &ldquo;Abra&ccedil;o!&rdquo; no final, copie com Ctrl+C e cole no editor <strong>Avan&ccedil;ado</strong> do f&oacute;rum. N&atilde;o copie esta caixa amarela.</li>
+    <li><strong>Inserir as imagens:</strong> o texto colado ter&aacute; 4 linhas vermelhas marcando onde cada imagem entra. Para cada uma: clique sobre a linha vermelha, apague-a, e com o cursor ali clique no bot&atilde;o <strong>Imagem</strong> da barra do editor e selecione o arquivo indicado.</li>
+  </ol>
+  <p style="margin:8px 0 0;">Os arquivos est&atilde;o em <code>evidencias/anexos-forum/</code>. N&atilde;o use o campo Anexo &mdash; ele colocaria as imagens no fim do post.</p>
 </div>
 
 <hr style="border:0; border-top:2px dashed #ccc; margin:28px 0;">
@@ -72,6 +77,8 @@
 
 <p>Os runs 3 e 5 mostram os dois modos do agente lado a lado no mesmo PR: no run 3, ainda sem chave cadastrada, ele montou o prompt e publicou um coment&aacute;rio avisando disso, sem derrubar o pipeline; no run 5, j&aacute; com a chave, publicou a an&aacute;lise completa.</p>
 
+<p style="color:#c00; font-weight:bold; background:#ffeaea; padding:6px 10px; border:1px dashed #c00;">[INSERIR AQUI &rarr; figura-1-pipeline-unit-test-falha-ai-debugger-ok.jpg]</p>
+
 <p>Trecho do log do <code>unit_test</code>:</p>
 
 <pre style="background:#f5f5f5; border:1px solid #ddd; padding:12px; overflow-x:auto; font-family:Consolas,Monaco,monospace; font-size:13px; line-height:1.4;">tests/test_app.py::test_calculate_tax_aplica_aliquota_sobre_subtotal FAILED [ 80%]
@@ -86,6 +93,8 @@ E       TypeError: unsupported operand type(s) for +: 'float' and 'str'
 app.py:41: TypeError
 ========================= 2 failed, 3 passed in 0.03s ==========================
 Error: Process completed with exit code 1.</pre>
+
+<p style="color:#c00; font-weight:bold; background:#ffeaea; padding:6px 10px; border:1px dashed #c00;">[INSERIR AQUI &rarr; figura-2-log-typeerror-pytest.jpg]</p>
 
 <h3>3. An&aacute;lise com IA generativa</h3>
 
@@ -117,6 +126,8 @@ Error: Process completed with exit code 1.</pre>
 
 <p>Ou seja: ela <strong>recusou</strong> a corre&ccedil;&atilde;o <code>float(TAX_RATE)</code>, que &eacute; a resposta aparentemente &oacute;bvia para um <code>TypeError</code> de <code>float + str</code>, porque essa corre&ccedil;&atilde;o faria o c&oacute;digo rodar devolvendo o n&uacute;mero errado. Tamb&eacute;m observou que <code>calculate_tax</code> devolve <code>subtotal + imposto</code> apesar do nome sugerir s&oacute; o imposto, e levantou um risco que n&atilde;o falharia em teste nenhum: se a al&iacute;quota vier de configura&ccedil;&atilde;o como <code>"7"</code> em vez de <code>"0.07"</code>, o imposto vira 700% silenciosamente.</p>
 
+<p style="color:#c00; font-weight:bold; background:#ffeaea; padding:6px 10px; border:1px dashed #c00;">[INSERIR AQUI &rarr; figura-4-analise-dois-defeitos.jpg]</p>
+
 <p>E aqui est&aacute; o achado que mais me interessou. No mesmo PR eu havia atualizado o modelo padr&atilde;o do agente, e a IA comentou:</p>
 
 <blockquote style="border-left:4px solid #999; margin:1em 0; padding:0.5em 1em; background:#fafafa; font-style:italic;">
@@ -126,6 +137,8 @@ O padr&atilde;o mudou de <code>"claude-sonnet-4-5"</code> para <code>"claude-opu
 <p>A conclus&atilde;o est&aacute; <strong>errada</strong> &mdash; o modelo existe, e a pr&oacute;pria an&aacute;lise foi gerada por ele. Mas o racioc&iacute;nio est&aacute; certo: o nome n&atilde;o aparecia nas evid&ecirc;ncias enviadas e &eacute; posterior ao corte de conhecimento do modelo. Ela sinalizou a incerteza em vez de afirmar, o que &eacute; o comportamento desej&aacute;vel &mdash; e ainda assim chegou a uma conclus&atilde;o pr&aacute;tica equivocada. &Eacute; a limita&ccedil;&atilde;o da Unidade 5 acontecendo ao vivo: o modelo s&oacute; enxerga o que entra no prompt.</p>
 
 <p>Conferi cada afirma&ccedil;&atilde;o da an&aacute;lise. Todas corretas, exceto essa.</p>
+
+<p style="color:#c00; font-weight:bold; background:#ffeaea; padding:6px 10px; border:1px dashed #c00;">[INSERIR AQUI &rarr; figura-3-comentarios-bot-no-pr.jpg]</p>
 
 <h3>4. Desafios encontrados</h3>
 
@@ -154,15 +167,6 @@ O padr&atilde;o mudou de <code>"claude-sonnet-4-5"</code> para <code>"claude-opu
 <p><strong>Por que validar antes de aplicar.</strong> Porque a IA n&atilde;o executa os testes, n&atilde;o conhece a regra de neg&oacute;cio e n&atilde;o responde por uma falha em produ&ccedil;&atilde;o &mdash; quem aprova o merge responde. O valor do arranjo est&aacute; justamente na separa&ccedil;&atilde;o de pap&eacute;is que o curso enfatiza: <strong>a IA sugere, o humano valida, a automa&ccedil;&atilde;o executa</strong>. Se a sugest&atilde;o for aplicada sem revis&atilde;o, a automa&ccedil;&atilde;o passa a executar uma hip&oacute;tese, e um erro do modelo vira um erro em produ&ccedil;&atilde;o.</p>
 
 <p>Por isso o coment&aacute;rio gerado pelo bot termina sempre com &ldquo;revise antes de aplicar&rdquo;. N&atilde;o &eacute; formalidade: &eacute; o ponto de controle que mant&eacute;m a GenAI no papel de copiloto, e n&atilde;o de autoridade final.</p>
-
-<h3>Evid&ecirc;ncias (em anexo)</h3>
-
-<ul>
-  <li><strong>Figura 1:</strong> grafo do pipeline no GitHub Actions &mdash; <code>unit_test</code> falhou e <code>ai_debugger</code> rodou em seguida</li>
-  <li><strong>Figura 2:</strong> log do <code>unit_test</code> com o <code>TypeError</code> (2 falhas, 3 testes passando)</li>
-  <li><strong>Figura 3:</strong> os dois coment&aacute;rios do bot no PR &mdash; sem chave e com a an&aacute;lise completa</li>
-  <li><strong>Figura 4:</strong> trecho da an&aacute;lise identificando os dois defeitos e recusando a corre&ccedil;&atilde;o <code>float()</code></li>
-</ul>
 
 <p>Abra&ccedil;o!</p>
 

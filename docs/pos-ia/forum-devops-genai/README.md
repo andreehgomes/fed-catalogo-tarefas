@@ -29,20 +29,27 @@ O print `05-teste-colagem-tinymce.jpg` mostra o resultado no editor.
 
 Se a colagem falhar, `post-forum-texto-limpo.txt` serve de alternativa.
 
-### Imagens
+### Imagens — no meio do texto
 
-Arraste os 4 arquivos de [`evidencias/anexos-forum/`](evidencias/anexos-forum/)
-para o campo **Anexo**, abaixo do editor, **na ordem do nome** (figura-1 a
-figura-4). Elas aparecem renderizadas no corpo do post, uma abaixo da outra,
-e são clicáveis para ampliar — é como os colegas publicaram.
+O HTML traz **4 marcadores vermelhos** indicando onde cada imagem entra.
+Depois de colar o texto no editor, para cada marcador:
 
-O post já termina com a seção "Evidências (em anexo)" descrevendo cada figura,
-então a ordem do upload precisa bater com a lista.
+1. clicar sobre a linha vermelha e apagá-la;
+2. com o cursor no lugar, clicar no botão **Imagem** da barra do editor;
+3. arrastar ou selecionar o arquivo indicado no marcador.
 
-Total: 288 KB (limite do fórum: 9 arquivos, 1 GB).
+Os arquivos estão em [`evidencias/anexos-forum/`](evidencias/anexos-forum/)
+(288 KB no total). Posições:
 
-Alternativa: inserir cada imagem no meio do texto pelo botão de imagem da
-barra do editor. Fica mais legível, mas exige posicionar uma a uma.
+| Figura | Onde entra |
+|---|---|
+| 1 — pipeline | depois da tabela de runs, antes do log |
+| 2 — log do pytest | logo após o bloco de log |
+| 4 — análise dos 2 defeitos | após a citação "corrigir só o tipo não basta" |
+| 3 — comentários no PR | no fim da seção 3 |
+
+**Não usar o campo Anexo**: ele coloca as imagens todas no rodapé do post,
+separadas do texto que elas ilustram.
 
 ## Laboratório
 
