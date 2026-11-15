@@ -7,8 +7,27 @@ Prazo: segunda-feira, 16/11/2026, às 12h.
 
 | Arquivo | Descrição |
 |---|---|
-| [post-forum.md](post-forum.md) | Texto para publicação no fórum |
+| [post-forum.md](post-forum.md) | Versão de trabalho, em Markdown |
+| [post-forum-tinymce.html](post-forum-tinymce.html) | Para colar no editor avançado do fórum, com formatação |
+| [post-forum-texto-limpo.txt](post-forum-texto-limpo.txt) | Texto sem marcação, alternativa segura |
 | [evidencias/](evidencias/) | Prints e logs do GitHub Actions |
+
+## Como publicar
+
+O editor do fórum (AVA/Moodle) é o **TinyMCE**, um editor rich text —
+Markdown cru não renderiza, os `##` e `**` aparecem literais.
+
+Para publicar com formatação:
+
+1. abrir `post-forum-tinymce.html` no navegador;
+2. selecionar do "Olá, pessoal!" até o "Abraço!" (sem a caixa amarela);
+3. copiar e colar no editor **Avançado** do fórum.
+
+Testado: títulos, negrito, itálico, links, listas, tabela com bordas,
+código inline e blocos de código em fonte monoespaçada são preservados.
+O print `05-teste-colagem-tinymce.jpg` mostra o resultado no editor.
+
+Se a colagem falhar, `post-forum-texto-limpo.txt` serve de alternativa.
 
 ## Laboratório
 

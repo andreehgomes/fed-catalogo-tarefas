@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Post do forum — versao para colar no TinyMCE</title>
+</head>
+<body style="font-family: Georgia, serif; max-width: 820px; margin: 2rem auto; padding: 0 1.5rem; line-height: 1.6;">
+
+<div style="background:#fffbe6; border:1px solid #e0c84a; padding:12px 16px; margin-bottom:28px; font-family:system-ui,sans-serif; font-size:14px; line-height:1.5;">
+  <strong>Como usar:</strong> selecione tudo a partir de &ldquo;Ol&aacute;, pessoal!&rdquo; (logo abaixo desta caixa) at&eacute; o &ldquo;Abra&ccedil;o!&rdquo; no final, copie com Ctrl+C e cole no editor avan&ccedil;ado do f&oacute;rum. N&atilde;o copie esta caixa amarela.
+</div>
+
+<hr style="border:0; border-top:2px dashed #ccc; margin:28px 0;">
+
+<p>Ol&aacute;, pessoal!</p>
+
+<p>Segue meu relato do miniprojeto. Adaptei o laborat&oacute;rio para <strong>GitHub Actions</strong>, por n&atilde;o ter conta no GitLab, mantendo a mesma arquitetura: um est&aacute;gio de teste e um est&aacute;gio de an&aacute;lise que s&oacute; roda quando o teste falha.</p>
+
+<h3>1. Reposit&oacute;rio</h3>
+
+<p><a href="https://github.com/andreehgomes/fed-catalogo-tarefas">https://github.com/andreehgomes/fed-catalogo-tarefas</a></p>
+
+<ul>
+  <li>Lab: <code>labs/devops-genai-lab/</code></li>
+  <li>Pipeline: <code>.github/workflows/devops-genai-lab.yml</code></li>
+  <li>Pull Request com o diagn&oacute;stico: <a href="https://github.com/andreehgomes/fed-catalogo-tarefas/pull/1">PR #1</a></li>
+</ul>
+
+<p>Os arquivos seguem o roteiro da Unidade 5: <code>app.py</code> (OrderService), <code>tests/test_app.py</code>, <code>genai_analyst.py</code> (agente), <code>requirements.txt</code> e o workflow no lugar do <code>.gitlab-ci.yml</code>.</p>
+
+<h3>2. Execu&ccedil;&atilde;o do projeto</h3>
+
+<p>Montei o cen&aacute;rio de forma um pouco diferente do roteiro, e isso acabou sendo o ponto mais interessante do exerc&iacute;cio.</p>
+
+<p>Em vez de subir o c&oacute;digo j&aacute; quebrado, subi o <strong>laborat&oacute;rio funcionando</strong> na <code>main</code> &mdash; pipeline verde, 5 testes passando. S&oacute; ent&atilde;o criei a branch <code>feature/nova-logica</code> introduzindo o defeito e abri o PR. O resultado foram quatro execu&ccedil;&otilde;es que contam a hist&oacute;ria inteira:</p>
+
+<table style="border-collapse: collapse; width: 100%; margin: 1em 0;" border="1" cellpadding="6" cellspacing="0">
+  <thead>
+    <tr style="background:#f0f0f0;">
+      <th style="padding:6px 10px; text-align:left;">Run</th>
+      <th style="padding:6px 10px; text-align:left;">Origem</th>
+      <th style="padding:6px 10px; text-align:left;">Resultado</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="padding:6px 10px;">1</td>
+      <td style="padding:6px 10px;">push na <code>main</code> (c&oacute;digo correto)</td>
+      <td style="padding:6px 10px;">sucesso em 11s</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 10px;">2</td>
+      <td style="padding:6px 10px;">push da <code>feature/nova-logica</code></td>
+      <td style="padding:6px 10px;">falha em 22s</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 10px;">3</td>
+      <td style="padding:6px 10px;">abertura do PR</td>
+      <td style="padding:6px 10px;"><code>unit_test</code> falhou / <code>ai_debugger</code> rodou</td>
+    </tr>
+    <tr>
+      <td style="padding:6px 10px;">5</td>
+      <td style="padding:6px 10px;">novo push no PR, j&aacute; com a chave de API</td>
+      <td style="padding:6px 10px;"><code>unit_test</code> falhou / <code>ai_debugger</code> em 40s</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>A diferen&ccedil;a entre o run 1 e o run 2 isola a regress&atilde;o na mudan&ccedil;a da branch, que &eacute; justamente a correla&ccedil;&atilde;o que o agente recebe no prompt (trace + diff).</p>
+
+<p>No PR, o <code>unit_test</code> falhou em 9s e o <code>ai_debugger</code> foi disparado logo em seguida pela condi&ccedil;&atilde;o <code>if: failure()</code> &mdash; o equivalente ao <code>when: on_failure</code> do GitLab. O diagn&oacute;stico apareceu como coment&aacute;rio no pr&oacute;prio PR e no resumo da execu&ccedil;&atilde;o.</p>
+
+<p>Os runs 3 e 5 mostram os dois modos do agente lado a lado no mesmo PR: no run 3, ainda sem chave cadastrada, ele montou o prompt e publicou um coment&aacute;rio avisando disso, sem derrubar o pipeline; no run 5, j&aacute; com a chave, publicou a an&aacute;lise completa.</p>
+
+<p>Trecho do log do <code>unit_test</code>:</p>
+
+<pre style="background:#f5f5f5; border:1px solid #ddd; padding:12px; overflow-x:auto; font-family:Consolas,Monaco,monospace; font-size:13px; line-height:1.4;">tests/test_app.py::test_calculate_tax_aplica_aliquota_sobre_subtotal FAILED [ 80%]
+tests/test_app.py::test_calculate_order_total_sudeste FAILED             [100%]
+
+subtotal = 100.0
+
+    def calculate_tax(subtotal: float) -&gt; float:
+&gt;       return subtotal + TAX_RATE
+E       TypeError: unsupported operand type(s) for +: 'float' and 'str'
+
+app.py:41: TypeError
+========================= 2 failed, 3 passed in 0.03s ==========================
+Error: Process completed with exit code 1.</pre>
+
+<h3>3. An&aacute;lise com IA generativa</h3>
+
+<p><strong>O erro:</strong> um <code>TypeError</code> em <code>calculate_tax()</code>. A al&iacute;quota de imposto passou a ser declarada como texto (<code>TAX_RATE = "0.07"</code>) e o c&oacute;digo a soma a um <code>float</code>.</p>
+
+<p>O que torna o caso representativo &eacute; <strong>como</strong> o defeito entrou. O diff do PR tem tr&ecirc;s linhas e se apresenta como uma refatora&ccedil;&atilde;o plaus&iacute;vel:</p>
+
+<pre style="background:#f5f5f5; border:1px solid #ddd; padding:12px; overflow-x:auto; font-family:Consolas,Monaco,monospace; font-size:13px; line-height:1.4;">- # Versao correta: aliquota como numero decimal.
+- TAX_RATE = 0.07
++ # Alterado nesta branch: aliquota passou a ser lida como texto de configuracao.
++ TAX_RATE = "0.07"
+
+-     return subtotal * (1 + TAX_RATE)
++     return subtotal + TAX_RATE</pre>
+
+<p>&Eacute; sintaticamente v&aacute;lido, o m&oacute;dulo importa sem reclamar, e passa f&aacute;cil numa revis&atilde;o r&aacute;pida. Note tamb&eacute;m que <strong>3 dos 5 testes continuam passando</strong> &mdash; a falha &eacute; parcial, n&atilde;o uma quebra geral, o que num projeto real tornaria o diagn&oacute;stico menos &oacute;bvio.</p>
+
+<p><strong>Como a IA contribui:</strong> o <code>genai_analyst.py</code> coleta o trace do pytest (artefato publicado pelo job anterior) e o diff do PR, monta um prompt estruturado pedindo quatro se&ccedil;&otilde;es &mdash; causa-raiz, corre&ccedil;&atilde;o sugerida, riscos e efeitos colaterais, e como validar &mdash; e publica a resposta no PR. O prompt inclui duas restri&ccedil;&otilde;es deliberadas: &ldquo;n&atilde;o invente arquivos ou fun&ccedil;&otilde;es que n&atilde;o apare&ccedil;am nas evid&ecirc;ncias&rdquo; e &ldquo;se a evid&ecirc;ncia for insuficiente, diga o que falta&rdquo;, para reduzir a chance de uma resposta confiante e errada.</p>
+
+<p>O ganho n&atilde;o &eacute; s&oacute; apontar a linha &mdash; isso o pr&oacute;prio pytest j&aacute; faz. &Eacute; <strong>ligar a falha &agrave; mudan&ccedil;a que a causou</strong>, cruzando trace e diff, e entregar isso no PR, onde a revis&atilde;o j&aacute; est&aacute; acontecendo.</p>
+
+<h4>O que a IA respondeu</h4>
+
+<p>Rodei com a API da Anthropic (<code>claude-opus-5-5</code>), e o resultado foi mais interessante do que eu esperava. A an&aacute;lise identificou que <strong>s&atilde;o dois defeitos, n&atilde;o um</strong> &mdash; o tipo <em>e</em> a f&oacute;rmula &mdash; e foi expl&iacute;cita sobre a consequ&ecirc;ncia disso:</p>
+
+<blockquote style="border-left:4px solid #999; margin:1em 0; padding:0.5em 1em; background:#fafafa; font-style:italic;">
+<strong>Aten&ccedil;&atilde;o:</strong> corrigir s&oacute; o tipo n&atilde;o basta. Com <code>TAX_RATE = 0.07</code>, a express&atilde;o <code>subtotal + TAX_RATE</code> devolveria <code>100.07</code>, e o teste espera <code>107.00</code>. A f&oacute;rmula tamb&eacute;m regrediu: ela somava a al&iacute;quota ao valor em vez de aplic&aacute;-la como percentual.
+</blockquote>
+
+<p>Ou seja: ela <strong>recusou</strong> a corre&ccedil;&atilde;o <code>float(TAX_RATE)</code>, que &eacute; a resposta aparentemente &oacute;bvia para um <code>TypeError</code> de <code>float + str</code>, porque essa corre&ccedil;&atilde;o faria o c&oacute;digo rodar devolvendo o n&uacute;mero errado. Tamb&eacute;m observou que <code>calculate_tax</code> devolve <code>subtotal + imposto</code> apesar do nome sugerir s&oacute; o imposto, e levantou um risco que n&atilde;o falharia em teste nenhum: se a al&iacute;quota vier de configura&ccedil;&atilde;o como <code>"7"</code> em vez de <code>"0.07"</code>, o imposto vira 700% silenciosamente.</p>
+
+<p>E aqui est&aacute; o achado que mais me interessou. No mesmo PR eu havia atualizado o modelo padr&atilde;o do agente, e a IA comentou:</p>
+
+<blockquote style="border-left:4px solid #999; margin:1em 0; padding:0.5em 1em; background:#fafafa; font-style:italic;">
+O padr&atilde;o mudou de <code>"claude-sonnet-4-5"</code> para <code>"claude-opus-5-5"</code>. N&atilde;o consigo confirmar pelas evid&ecirc;ncias que esse identificador existe. Se for inv&aacute;lido, a chamada &agrave; API falha (provavelmente com erro 4xx).
+</blockquote>
+
+<p>A conclus&atilde;o est&aacute; <strong>errada</strong> &mdash; o modelo existe, e a pr&oacute;pria an&aacute;lise foi gerada por ele. Mas o racioc&iacute;nio est&aacute; certo: o nome n&atilde;o aparecia nas evid&ecirc;ncias enviadas e &eacute; posterior ao corte de conhecimento do modelo. Ela sinalizou a incerteza em vez de afirmar, o que &eacute; o comportamento desej&aacute;vel &mdash; e ainda assim chegou a uma conclus&atilde;o pr&aacute;tica equivocada. &Eacute; a limita&ccedil;&atilde;o da Unidade 5 acontecendo ao vivo: o modelo s&oacute; enxerga o que entra no prompt.</p>
+
+<p>Conferi cada afirma&ccedil;&atilde;o da an&aacute;lise. Todas corretas, exceto essa.</p>
+
+<h3>4. Desafios encontrados</h3>
+
+<p><strong>Plataforma diferente da do roteiro.</strong> Sem conta no GitLab, migrei para o GitHub Actions. O conceito se mant&eacute;m, mas dois pontos exigiram tradu&ccedil;&atilde;o: <code>when: on_failure</code> virou <code>if: failure()</code>, e, como no GitHub cada job roda em uma m&aacute;quina limpa, o trace do pytest n&atilde;o fica dispon&iacute;vel para o job seguinte por padr&atilde;o. Resolvi publicando o log como <strong>artefato</strong> no <code>unit_test</code> e baixando-o no <code>ai_debugger</code>. No GitLab isso &eacute; transparente, porque o agente l&ecirc; o log pela API.</p>
+
+<p><strong>Encadeamento condicional.</strong> No GitHub Actions um job com <code>needs:</code> &eacute; <em>pulado</em> quando o anterior falha &mdash; o oposto do que o laborat&oacute;rio precisa. Foi preciso combinar <code>needs: unit_test</code> com <code>if: failure()</code> para que o agente rodasse exatamente no cen&aacute;rio de falha.</p>
+
+<p><strong>Montar um defeito que n&atilde;o se entregue.</strong> Reescrever o bug como uma mudan&ccedil;a de diff plaus&iacute;vel deu mais trabalho do que copiar o exemplo pronto, mas evita que o agente acerte por causa de uma pista expl&iacute;cita no c&oacute;digo em vez do racioc&iacute;nio sobre as evid&ecirc;ncias.</p>
+
+<p><strong>Agente que n&atilde;o derruba o pipeline.</strong> O <code>genai_analyst.py</code> trata falha de HTTP, aus&ecirc;ncia de chave e erro inesperado retornando <code>0</code>. Um agente de diagn&oacute;stico que quebra o pipeline por conta pr&oacute;pria troca um problema por outro.</p>
+
+<p><strong>Segredo fora do c&oacute;digo.</strong> A chave fica em <em>Settings &rarr; Secrets and variables &rarr; Actions</em>, lida via <code>secrets.*</code> e mascarada no log pelo GitHub. O script detecta qual provedor est&aacute; configurado e, sem chave nenhuma, apenas imprime o prompt e encerra sem falhar &mdash; foi assim que validei o fluxo antes de ligar o modelo.</p>
+
+<h3>5. Reflex&atilde;o cr&iacute;tica</h3>
+
+<p><strong>Vantagens.</strong> A mais concreta &eacute; reduzir o tempo de diagn&oacute;stico: o log do runner &eacute; longo e o desenvolvedor precisa abrir o Actions, achar o job, expandir o passo certo. A an&aacute;lise chega pronta no PR. Como recebe o diff junto com o trace, a IA consegue responder a pergunta que o pytest n&atilde;o responde &mdash; <em>o que mudou para isso quebrar</em>. E h&aacute; um efeito did&aacute;tico: a explica&ccedil;&atilde;o em linguagem natural ensina quem est&aacute; lendo.</p>
+
+<p><strong>Limita&ccedil;&otilde;es.</strong> A IA s&oacute; enxerga o que entra no prompt. No meu caso s&atilde;o o trace e o diff, truncados em 6.000 caracteres cada &mdash; ela n&atilde;o conhece a regra de neg&oacute;cio, o hist&oacute;rico do servi&ccedil;o nem o resto do c&oacute;digo. Da&iacute; vem o risco mais s&eacute;rio: ela produz texto <em>plaus&iacute;vel</em>, e plaus&iacute;vel n&atilde;o &eacute; sin&ocirc;nimo de correto. Uma sugest&atilde;o errada com apar&ecirc;ncia de certa custa mais caro do que nenhuma sugest&atilde;o, porque desloca a investiga&ccedil;&atilde;o para o lado errado.</p>
+
+<p>E foi exatamente isso que aconteceu comigo, no coment&aacute;rio sobre o nome do modelo: uma afirma&ccedil;&atilde;o bem fundamentada, com a incerteza sinalizada, e mesmo assim factualmente errada. Se eu tivesse aceitado, teria revertido uma mudan&ccedil;a correta.</p>
+
+<p>Vale registrar o outro lado, porque contraria o que eu esperava. A cr&iacute;tica comum a este laborat&oacute;rio &eacute; que a IA tende a corrigir o <strong>sintoma</strong> &mdash; sugerir <code>float(TAX_RATE)</code>, fazer o teste passar e deixar o problema de fundo. No meu caso ela n&atilde;o caiu nisso: recusou a corre&ccedil;&atilde;o &oacute;bvia justamente porque ela produziria o n&uacute;mero errado, e apontou riscos que nenhum teste pegaria. N&atilde;o acho que isso generalize &mdash; depende do modelo, do prompt e de quanto contexto entra. Mas mostra que a qualidade da an&aacute;lise depende bastante de <strong>o que voc&ecirc; coloca no prompt</strong>: aqui, o diff ao lado do trace foi o que permitiu ver que duas coisas mudaram, n&atilde;o uma.</p>
+
+<p>H&aacute; ainda os riscos de enviar log e c&oacute;digo para um servi&ccedil;o externo (dados sens&iacute;veis, LGPD) e o fato de o diff ser um vetor de <em>prompt injection</em>: quem escreve o c&oacute;digo controla parte do que o agente l&ecirc;.</p>
+
+<p><strong>Por que validar antes de aplicar.</strong> Porque a IA n&atilde;o executa os testes, n&atilde;o conhece a regra de neg&oacute;cio e n&atilde;o responde por uma falha em produ&ccedil;&atilde;o &mdash; quem aprova o merge responde. O valor do arranjo est&aacute; justamente na separa&ccedil;&atilde;o de pap&eacute;is que o curso enfatiza: <strong>a IA sugere, o humano valida, a automa&ccedil;&atilde;o executa</strong>. Se a sugest&atilde;o for aplicada sem revis&atilde;o, a automa&ccedil;&atilde;o passa a executar uma hip&oacute;tese, e um erro do modelo vira um erro em produ&ccedil;&atilde;o.</p>
+
+<p>Por isso o coment&aacute;rio gerado pelo bot termina sempre com &ldquo;revise antes de aplicar&rdquo;. N&atilde;o &eacute; formalidade: &eacute; o ponto de controle que mant&eacute;m a GenAI no papel de copiloto, e n&atilde;o de autoridade final.</p>
+
+<p>Abra&ccedil;o!</p>
+
+</body>
+</html>
