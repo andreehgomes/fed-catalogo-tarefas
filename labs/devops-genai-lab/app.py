@@ -16,9 +16,8 @@ SHIPPING_TABLE: Mapping[str, float] = {
 }
 
 # Aliquota de imposto aplicada sobre o subtotal.
-# Versao correta: aliquota como numero decimal.
-# A branch feature/nova-logica introduz o defeito intencional.
-TAX_RATE = 0.07
+# Alterado nesta branch: aliquota passou a ser lida como texto de configuracao.
+TAX_RATE = "0.07"
 
 
 def calculate_subtotal(items: Iterable[Mapping[str, float]]) -> float:
@@ -38,9 +37,8 @@ def calculate_tax(subtotal: float) -> float:
     """Calcula o imposto sobre o subtotal.
 
     Aplica a aliquota percentual sobre o subtotal informado.
-
     """
-    return subtotal * (1 + TAX_RATE)
+    return subtotal + TAX_RATE
 
 
 def calculate_order_total(items, region: str) -> float:
